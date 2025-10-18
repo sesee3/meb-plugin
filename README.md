@@ -1,14 +1,12 @@
 # MEB's Weather
 
 
-<DA AGGIORNARE>
-
-> Italiano (prima sezione)
-> English (second section)
+> Italiano 🇮🇹
+> English 🇬🇧/🇺🇸
 
 ---
 
-## Indice (IT)
+## Indice 🇮🇹
 - Introduzione
 - Caratteristiche
 - Requisiti
@@ -236,13 +234,8 @@ Il progetto contiene un `package.json` ma nessuna licenza esplicita nel reposito
 
 ---
 
-## Traduzione in Inglese (English)
 
-Below is the same documentation in English.
-
----
-
-## Table of Contents (EN)
+## Table of Contents 🇬🇧/🇺🇸
 - Introduction
 - Features
 - Requirements
