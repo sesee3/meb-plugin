@@ -1,6 +1,4 @@
-"use strict";
-
-const fetch = require("node-fetch");
+const fetch = import("node-fetch");
 
 // CommonJS export: factory del plugin
 module.exports = function (app) {
