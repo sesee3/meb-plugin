@@ -1,12 +1,10 @@
 const fetch = import("node-fetch");
 
-// CommonJS export: factory del plugin
 module.exports = function (app) {
   let lastCall = null;
   let updateTimer = null;
   let unsubPos = null;
 
-  // Template che pubblica i dati su Signal K
   const emitForecastFrom = (
     { temperature, pressure, rain, wind },
     settings,
@@ -47,11 +45,12 @@ module.exports = function (app) {
     ];
 
     app.handleMessage("meb-weather", {
-      context: "vessels.self",
+      context: "meb-test-unit.self",
       updates: [{ values }],
     });
   };
 
+  //Crea un template da inviare a SignalK con i dati meteo della posizione specificata
   async function forecastForLocation(settings) {
     const location = app.getSelfPath("navigation.position");
 
@@ -72,7 +71,7 @@ module.exports = function (app) {
 
   const plugin = {
     id: "meb-weather",
-    name: "MEB's Weather",
+    name: "MEB's Weather Plugin",
 
     start: async (settings) => {
       const updater = Math.max(
@@ -99,9 +98,9 @@ module.exports = function (app) {
           location.latitude != null &&
           location.longitude != null
         ) {
-          console.log(
-            "-----------------------------LOCATION UPDATE--------------------------------",
-          );
+          // console.log(
+          //   "-----------------------------LOCATION UPDATE--------------------------------",
+          // );
           const forecast = await module.exports.getCurrentForecast(
             location.latitude,
             location.longitude,
@@ -123,30 +122,17 @@ module.exports = function (app) {
       }
     },
 
-    // Proprietà di configurazione visibili nella scheda plugin
     schema: () => ({
       type: "object",
       required: ["apiKey"],
       properties: {
-        lonPosition: {
-          type: "number",
-          title: "Latitudine",
-          default: 50,
-          description: "Il valore di longitudine delle coordinate",
-        },
-        latPosition: {
-          type: "number",
-          title: "Longitudine",
-          default: 30,
-          description: "Il valore di latitudine delle coordinate",
-        },
         updaterInterval: {
           type: "number",
-          title: "Frequenza aggiornamenti meteo",
-          default: 60,
-          minimum: 10,
+          title: "Frequenza aggiornamenti",
+          default: 120,
+          minimum: 60,
           description:
-            "Scegli ogni quanti secondi i dati meteo si aggiorneranno. (Vedi i limiti di chiamate del tuo piano per ricevere sempre aggiornamenti)",
+            "Scegli ogni quanti secondi i dati meteo si aggiorneranno. (Vedi i limiti di chiamate del tuo piano per ricevere sempre aggiornamenti). Max. 500.000 chimate al mese",
         },
       },
     }),
@@ -162,6 +148,32 @@ module.exports = function (app) {
         }
       });
     },
+
+    getOpenApi: () => ({
+      openapi: "3.0.0",
+      info: { title: "MebWeather API Portal", version: "1.0.0" },
+      servers: [{ url: "/plugins/meb-weather" }],
+      paths: {
+        "/ping": {
+          get: {
+            summary: "Called /ping route",
+            responses: {
+              200: {
+                description: "OK",
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: { message: { type: "string" } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
   };
 
   return plugin;
