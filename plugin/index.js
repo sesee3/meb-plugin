@@ -1,9 +1,10 @@
-const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
 const jwt = require("jsonwebtoken"); //per firmare le chiavi delle getOpenApi
 const axios = require("axios");
 const dotenv = require("dotenv");
+
+dotenv.config({ quiet: true });
 
 //WeatherAPI Authorization Paramters
 const teamID = process.env.WEATHERKIT_TEAM_ID;
