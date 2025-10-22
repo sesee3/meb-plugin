@@ -86,7 +86,7 @@ module.exports = function (app) {
   }
 
   async function buildAppleWeatherForecastWith(settings) {
-    const location = app.getSelfPath("navigation.position");
+    var location = app.getSelfPath("navigation.position");
 
     if (!location || location.latitude == nill || location.longitude == null) {
       app.debug("UNKNWON LOCATION, COORDINATES SET TO");
