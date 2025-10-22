@@ -118,6 +118,7 @@ module.exports = function (app) {
       wind: windSpeed,
     };
 
+    //DEBUG ONLY
     console.log(forecastDataset);
 
     publish(forecastDataset, settings);
@@ -166,7 +167,6 @@ module.exports = function (app) {
     ];
 
     app.handleMessage("meb-weather", {
-      context: "self",
       updates: [{ values }],
     });
   };
@@ -236,6 +236,17 @@ module.exports = function (app) {
           res.status(500).json({ error: e.message });
         }
       });
+
+      // router.get("/currentForecast", async (req, res) => {
+      //   try {
+      //     const location = {
+
+      //     }
+      //     const forecastsData = async getAppleWeatherForecast()
+      //   } catch {
+
+      //   }
+      // })
     },
 
     getOpenApi: () => ({
