@@ -68,10 +68,13 @@ module.exports = function (app) {
     }
   }
 
+  var lang = "it"; //"it"
+  var timezone = "Europe/Rome"; //"Europe/Rome"
+
   async function getAppleWeatherForecast(lat, lon) {
     const token = getToken();
     const dataSets = ["currentWeather"];
-    const url = `https://weatherkit.apple.com/api/v1/weather/${LANG}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(TIMEZONE)}`;
+    const url = `https://weatherkit.apple.com/api/v1/weather/${lang}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(timezone)}`;
 
     console.log(url);
 
@@ -115,8 +118,6 @@ module.exports = function (app) {
   }
 
   //Parametri configurabili dalle impostazioni del plugin
-  var lang; //"it"
-  var timezone; //"Europe/Rome"
 
   const publish = ({ temperature, pressure, rain, wind }, settings) => {
     const values = [
@@ -176,7 +177,6 @@ module.exports = function (app) {
 
       //TODO: Primo tentativo all'avvio
       await buildAppleWeatherForecastWith(settings);
-      // await forecastForLocation(settings);
 
       updateTimer = setInterval(() => {
         //TODO: Publish
