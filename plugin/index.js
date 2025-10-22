@@ -102,7 +102,7 @@ module.exports = function (app) {
       location.longitude,
     );
     //ONLY CURRENT
-    app.log("Current Apple Weather Forecast");
+    app.debug("Current Apple Weather Forecast");
 
     const currentForecast = forecast.currentWeather;
     //Currents
