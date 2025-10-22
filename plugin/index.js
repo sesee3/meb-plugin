@@ -79,13 +79,14 @@ module.exports = function (app) {
       );
 
       //TODO: Primo tentativo all'avvio
+      await buildAppleWeatherForecastWith(settings);
       // await forecastForLocation(settings);
 
       updateTimer = setInterval(() => {
         //TODO: Publish
-        // forecastForLocation(settings).catch(
-        //   (e) => app.error && app.error(e.message),
-        // );
+        buildAppleWeatherForecastWith(settings).catch(
+          (e) => app.error && app.error(e.message),
+        );
       }, updater * 1000);
 
       //Il percorso di SignalK sul quale vengono pubblicate le coordinate
