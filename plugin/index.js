@@ -94,7 +94,6 @@ module.exports = function (app) {
         latitude: 13.245,
         longitude: 15.558,
       };
-      return;
     }
 
     const forecast = await getAppleWeatherForecast(
