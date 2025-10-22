@@ -316,5 +316,3 @@ async function buildAppleWeatherForecastWith(settings) {
 
   publish(forecastDataset, settings);
 }
-
-module.exports.openMeteoForecast = getOpenMeteoForecast();
