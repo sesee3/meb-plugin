@@ -118,6 +118,8 @@ module.exports = function (app) {
       wind: windSpeed,
     };
 
+    console.log(forecastDataset);
+
     publish(forecastDataset, settings);
   }
 
