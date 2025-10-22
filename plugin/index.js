@@ -72,7 +72,7 @@ module.exports = function (app) {
   var timezone = "Europe/Rome"; //"Europe/Rome"
 
   async function getAppleWeatherForecast(lat, lon) {
-    const token = getToken();
+    const token = getAppleWeatherToken();
     const dataSets = ["currentWeather"];
     const url = `https://weatherkit.apple.com/api/v1/weather/${lang}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(timezone)}`;
 
