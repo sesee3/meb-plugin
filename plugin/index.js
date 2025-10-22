@@ -17,6 +17,102 @@ module.exports = function (app) {
   // let updateTimer = null;
   // let unsubPos = null;
   //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  // APPLE METEO
+
+  function getAppleWeatherToken() {
+    try {
+      const privateKey = fs.readFileSync(`./${authPath}`, "utf8");
+
+      const headers = {
+        alg: "ES256",
+        kid: keyID,
+        id: `${teamID}.${serviceID}`,
+      };
+
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      const expirationTime = nowInSeconds + 604.8; //7 days
+
+      const payload = {
+        iss: teamID,
+        iat: nowInSeconds,
+        exp: expirationTime,
+        sub: serviceID,
+      };
+
+      const token = jwt.sign(payload, privateKey, {
+        algorithm: "ES256",
+        header: headers,
+      });
+
+      console.log(token);
+
+      return token;
+    } catch (error) {
+      console.error("Errore durante la generazione del JWT:", error.message);
+    }
+  }
+
+  async function getAppleWeatherForecast(lat, lon) {
+    const token = getToken();
+    const dataSets = ["currentWeather"];
+    const url = `https://weatherkit.apple.com/api/v1/weather/${LANG}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(TIMEZONE)}`;
+
+    console.log(url);
+
+    const { data } = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 15000,
+    });
+    return data;
+  }
+
+  async function buildAppleWeatherForecastWith(settings) {
+    const location = app.getSelfPath("navigation.position");
+
+    if (!location || location.latitude == nill || location.longitude == null) {
+      app.debug("UNKNWON LOCATION, COORDINATES NOT AVAILABLE");
+      return;
+    }
+
+    const forecast = await getAppleWeatherForecast(
+      location.latitude,
+      location.longitude,
+    );
+    //ONLY CURRENT
+    console.log("Current Apple Weather Forecast");
+
+    const currentForecast = forecast.currentWeather;
+    //Currents
+    const windSpeed = currentForecast.windSpeed;
+    const temperature = current.temperature;
+    const pressure = current.pressure;
+    const rain = current.precipitationIntensity;
+
+    const forecastDataset = {
+      temperature: temperature,
+      pressure: pressure,
+      rain: rain,
+      wind: windSpeed,
+    };
+
+    publish(forecastDataset, settings);
+  }
 
   //Parametri configurabili dalle impostazioni del plugin
   var lang; //"it"
@@ -166,6 +262,8 @@ module.exports = function (app) {
   return plugin;
 };
 
+//############ APPLE WEATHER
+
 //############ OPENMETEO
 async function getOpenMeteoForecast(latitude, longitude) {
   const api =
@@ -234,85 +332,4 @@ async function buildOpenMeteoForecastWith(settings) {
     location.longitude,
   );
   publish(forecast, settings);
-}
-
-//############ APPLE WEATHER
-
-function getAppleWeatherToken() {
-  try {
-    const privateKey = fs.readFileSync(`./${authPath}`, "utf8");
-
-    const headers = {
-      alg: "ES256",
-      kid: keyID,
-      id: `${teamID}.${serviceID}`,
-    };
-
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    const expirationTime = nowInSeconds + 604.8; //7 days
-
-    const payload = {
-      iss: teamID,
-      iat: nowInSeconds,
-      exp: expirationTime,
-      sub: serviceID,
-    };
-
-    const token = jwt.sign(payload, privateKey, {
-      algorithm: "ES256",
-      header: headers,
-    });
-
-    console.log(token);
-
-    return token;
-  } catch (error) {
-    console.error("Errore durante la generazione del JWT:", error.message);
-  }
-}
-
-async function getAppleWeatherForecast(lat, lon) {
-  const token = getToken();
-  const dataSets = ["currentWeather"];
-  const url = `https://weatherkit.apple.com/api/v1/weather/${LANG}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(TIMEZONE)}`;
-
-  console.log(url);
-
-  const { data } = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    timeout: 15000,
-  });
-  return data;
-}
-
-async function buildAppleWeatherForecastWith(settings) {
-  const location = app.getSelfPath("navigation.position");
-
-  if (!location || location.latitude == nill || location.longitude == null) {
-    app.debug("UNKNWON LOCATION, COORDINATES NOT AVAILABLE");
-    return;
-  }
-
-  const forecast = await getAppleWeatherForecast(
-    location.latitude,
-    location.longitude,
-  );
-  //ONLY CURRENT
-  console.log("Current Apple Weather Forecast");
-
-  const currentForecast = forecast.currentWeather;
-  //Currents
-  const windSpeed = currentForecast.windSpeed;
-  const temperature = current.temperature;
-  const pressure = current.pressure;
-  const rain = current.precipitationIntensity;
-
-  const forecastDataset = {
-    temperature: temperature,
-    pressure: pressure,
-    rain: rain,
-    wind: windSpeed,
-  };
-
-  publish(forecastDataset, settings);
 }
