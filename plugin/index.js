@@ -89,7 +89,11 @@ module.exports = function (app) {
     const location = app.getSelfPath("navigation.position");
 
     if (!location || location.latitude == nill || location.longitude == null) {
-      app.debug("UNKNWON LOCATION, COORDINATES NOT AVAILABLE");
+      app.debug("UNKNWON LOCATION, COORDINATES SET TO");
+      location = {
+        latitude: 13.245,
+        longitude: 15.558,
+      };
       return;
     }
 
