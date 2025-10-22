@@ -89,7 +89,7 @@ module.exports = function (app) {
     var location = app.getSelfPath("navigation.position");
 
     if (!location || location.latitude == nill || location.longitude == null) {
-      app.debug("UNKNWON LOCATION, COORDINATES SET TO");
+      app.debug("UNKNWON LOCATION, COORDINATES OVERRIDE");
       location = {
         latitude: 13.245,
         longitude: 15.558,
@@ -102,7 +102,7 @@ module.exports = function (app) {
       location.longitude,
     );
     //ONLY CURRENT
-    console.log("Current Apple Weather Forecast");
+    app.log("Current Apple Weather Forecast");
 
     const currentForecast = forecast.currentWeather;
     //Currents
