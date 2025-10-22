@@ -5,8 +5,6 @@ const jwt = import("jsonwebtoken"); //per firmare le chiavi delle getOpenApi
 const axios = import("axios");
 const dotenv = import("dotenv");
 
-dotenv.config({ quiet: true });
-
 //WeatherAPI Authorization Paramters
 const teamID = process.env.WEATHERKIT_TEAM_ID;
 const serviceID = process.env.WEATHERKIT_SERVICE_ID;
@@ -65,7 +63,7 @@ module.exports = function (app) {
     ];
 
     app.handleMessage("meb-weather", {
-      context: "vessel.self",
+      context: "self",
       updates: [{ values }],
     });
   };

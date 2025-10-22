@@ -12,6 +12,11 @@
     "displayName": "MEB's Weather Plugin"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "axios": "^1.12.2",
+    "dotenv": "^17.2.3",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
+    "path": "^0.12.7"
   }
 }
