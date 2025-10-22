@@ -14,9 +14,10 @@ const authPath = process.env.WEATHERKIT_AUTH_FILE;
 
 module.exports = function (app) {
   //TODO: Aggiungere last call e
-  // let lastCall = null;
-  // let updateTimer = null;
-  // let unsubPos = null;
+
+  let lastCall = null;
+  let updateTimer = null;
+  let unsubPos = null;
   //
   //
   //
