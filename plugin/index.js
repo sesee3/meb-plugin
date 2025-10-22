@@ -1,14 +1,30 @@
 const fetch = import("node-fetch");
+const fs = import("fs");
+const path = import("path");
+const jwt = import("jsonwebtoken"); //per firmare le chiavi delle getOpenApi
+const axios = import("axios");
+const dotenv = import("dotenv");
+
+dotenv.config({ quiet: true });
+
+//WeatherAPI Authorization Paramters
+const teamID = process.env.WEATHERKIT_TEAM_ID;
+const serviceID = process.env.WEATHERKIT_SERVICE_ID;
+const keyID = process.env.WEATHERKIT_KEY_ID;
+const authPath = process.env.WEATHERKIT_AUTH_FILE;
 
 module.exports = function (app) {
-  let lastCall = null;
-  let updateTimer = null;
-  let unsubPos = null;
+  //TODO: Aggiungere last call e
+  // let lastCall = null;
+  // let updateTimer = null;
+  // let unsubPos = null;
+  //
 
-  const emitForecastFrom = (
-    { temperature, pressure, rain, wind },
-    settings,
-  ) => {
+  //Parametri configurabili dalle impostazioni del plugin
+  var lang; //"it"
+  var timezone; //"Europe/Rome"
+
+  const publish = ({ temperature, pressure, rain, wind }, settings) => {
     const values = [
       {
         path: "mebweather.forecast.temperature",
@@ -42,32 +58,17 @@ module.exports = function (app) {
         path: "mebweather.latitude",
         value: (settings && settings.lonPosition) || 0,
       },
+      {
+        path: "mebweather.refreshTimer",
+        value: 60,
+      },
     ];
 
     app.handleMessage("meb-weather", {
-      context: "meb-test-unit.self",
+      context: "vessel.self",
       updates: [{ values }],
     });
   };
-
-  //Crea un template da inviare a SignalK con i dati meteo della posizione specificata
-  async function forecastForLocation(settings) {
-    const location = app.getSelfPath("navigation.position");
-
-    if (!location || location.latitude == null || location.longitude == null) {
-      if (app.debug)
-        app.debug(
-          "La posizione non è ancora disponibile. Gli aggiornamenti riprenderanno a breve",
-        );
-      return;
-    }
-
-    const forecast = await module.exports.getCurrentForecast(
-      location.latitude,
-      location.longitude,
-    );
-    emitForecastFrom(forecast, settings);
-  }
 
   const plugin = {
     id: "meb-weather",
@@ -79,35 +80,22 @@ module.exports = function (app) {
         Number((settings && settings.updaterInterval) ?? 60),
       );
 
-      // Primo tentativo all'avvio
-      await forecastForLocation(settings);
+      //TODO: Primo tentativo all'avvio
+      // await forecastForLocation(settings);
 
       updateTimer = setInterval(() => {
-        forecastForLocation(settings).catch(
-          (e) => app.error && app.error(e.message),
-        );
+        //TODO: Publish
+        // forecastForLocation(settings).catch(
+        //   (e) => app.error && app.error(e.message),
+        // );
       }, updater * 1000);
 
-      // Aggiorna ad ogni update della posizione
-      const vesselLocationStream = app.streambundle.getSelfStream(
+      //Il percorso di SignalK sul quale vengono pubblicate le coordinate
+      const locationStreamPath = app.streambundle.getSelfStream(
         "navigation.position",
       );
-      unsubPos = vesselLocationStream.onValue(async (location) => {
-        if (
-          location &&
-          location.latitude != null &&
-          location.longitude != null
-        ) {
-          // console.log(
-          //   "-----------------------------LOCATION UPDATE--------------------------------",
-          // );
-          const forecast = await module.exports.getCurrentForecast(
-            location.latitude,
-            location.longitude,
-          );
-          emitForecastFrom(forecast, settings);
-        }
-      });
+
+      unsubPos = locationStreamPath.onValue();
     },
 
     stop: async () => {
@@ -179,11 +167,8 @@ module.exports = function (app) {
   return plugin;
 };
 
-// Funzione utility: current forecast
-module.exports.getCurrentForecast = async function getCurrentForecast(
-  latitude,
-  longitude,
-) {
+//############ OPENMETEO
+async function getOpenMeteoForecast(latitude, longitude) {
   const api =
     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
     `&current=temperature_2m,pressure_msl,rain,precipitation,wind_speed_10m`;
@@ -202,20 +187,20 @@ module.exports.getCurrentForecast = async function getCurrentForecast(
     if (ct.includes("application/json")) {
       const data = await res.json();
 
-      // UNITS (non usate direttamente qui, ma utili per logging)
+      // UNITS (da vedere se si possono usare per migliroare la lettura dei dati)
       const temperatureUnit = data.current_units.temperature_2m;
       const pressureUnit = data.current_units.pressure_msl;
       const windUnit = data.current_units.wind_speed_10m;
       const rainUnit = data.current_units.rain;
 
-      // CURRENT FORECAST ELEMENTS
+      //Forecast Datas
       const temperature = data.current.temperature_2m;
       const pressure = data.current.pressure_msl;
       const rain = data.current.rain;
       const windSpeed = data.current.wind_speed_10m;
 
       console.log(
-        `-------CURRENT FORECAST STREAM------- LON: ${longitude} Temp: ${temperature}${temperatureUnit}, Pressure: ${pressure}${pressureUnit}, Rain: ${rain}${rainUnit}, Wind: ${windSpeed}${windUnit}`,
+        `-------FORECAST STREAM------- LON: ${longitude} Temp: ${temperature}${temperatureUnit}, Pressure: ${pressure}${pressureUnit}, Rain: ${rain}${rainUnit}, Wind: ${windSpeed}${windUnit}`,
       );
 
       return {
@@ -231,7 +216,106 @@ module.exports.getCurrentForecast = async function getCurrentForecast(
   } catch (error) {
     console.error(`FORECAST REQUEST FAILED: ${error}`);
   }
-};
+}
 
-// Alias come in ES module
-module.exports.currentForecast = module.exports.getCurrentForecast;
+//Crea un template da inviare a SignalK con i dati meteo della posizione specificata
+async function buildOpenMeteoForecastWith(settings) {
+  const location = app.getSelfPath("navigation.position");
+
+  if (!location || location.latitude == null || location.longitude == null) {
+    if (app.debug)
+      app.debug(
+        "La posizione non è ancora disponibile. Gli aggiornamenti riprenderanno a breve",
+      );
+    return;
+  }
+
+  const forecast = await getOpenMeteoForecast(
+    location.latitude,
+    location.longitude,
+  );
+  publish(forecast, settings);
+}
+
+//############ APPLE WEATHER
+
+function getAppleWeatherToken() {
+  try {
+    const privateKey = fs.readFileSync(`./${authPath}`, "utf8");
+
+    const headers = {
+      alg: "ES256",
+      kid: keyID,
+      id: `${teamID}.${serviceID}`,
+    };
+
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const expirationTime = nowInSeconds + 604.8; //7 days
+
+    const payload = {
+      iss: teamID,
+      iat: nowInSeconds,
+      exp: expirationTime,
+      sub: serviceID,
+    };
+
+    const token = jwt.sign(payload, privateKey, {
+      algorithm: "ES256",
+      header: headers,
+    });
+
+    console.log(token);
+
+    return token;
+  } catch (error) {
+    console.error("Errore durante la generazione del JWT:", error.message);
+  }
+}
+
+async function getAppleWeatherForecast(lat, lon) {
+  const token = getToken();
+  const dataSets = ["currentWeather"];
+  const url = `https://weatherkit.apple.com/api/v1/weather/${LANG}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(TIMEZONE)}`;
+
+  console.log(url);
+
+  const { data } = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 15000,
+  });
+  return data;
+}
+
+async function buildAppleWeatherForecastWith(settings) {
+  const location = app.getSelfPath("navigation.position");
+
+  if (!location || location.latitude == nill || location.longitude == null) {
+    app.debug("UNKNWON LOCATION, COORDINATES NOT AVAILABLE");
+    return;
+  }
+
+  const forecast = await getAppleWeatherForecast(
+    location.latitude,
+    location.longitude,
+  );
+  //ONLY CURRENT
+  console.log("Current Apple Weather Forecast");
+
+  const currentForecast = forecast.currentWeather;
+  //Currents
+  const windSpeed = currentForecast.windSpeed;
+  const temperature = current.temperature;
+  const pressure = current.pressure;
+  const rain = current.precipitationIntensity;
+
+  const forecastDataset = {
+    temperature: temperature,
+    pressure: pressure,
+    rain: rain,
+    wind: windSpeed,
+  };
+
+  publish(forecastDataset, settings);
+}
+
+module.exports.openMeteoForecast = getOpenMeteoForecast();
