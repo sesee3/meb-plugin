@@ -90,7 +90,7 @@ module.exports = function (app) {
   async function buildAppleWeatherForecastWith(settings) {
     var location = app.getSelfPath("navigation.position");
 
-    if (!location || location.latitude == nill || location.longitude == null) {
+    if (!location || location.latitude == null || location.longitude == null) {
       app.debug("UNKNWON LOCATION, COORDINATES OVERRIDE");
       location = {
         latitude: 13.245,
