@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
-const jwt = require("jsonwebtoken"); //per firmare le chiavi delle getOpenApi
+const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const dotenv = require("dotenv");
 
-dotenv.config({ quiet: true });
+dotenv.config({ path: path.resolve(__dirname, '..', '.env'), quiet: true });
 
 //WeatherAPI Authorization Paramters
 const teamID = process.env.WEATHERKIT_TEAM_ID;
@@ -13,33 +13,18 @@ const keyID = process.env.WEATHERKIT_KEY_ID;
 const authPath = process.env.WEATHERKIT_AUTH_FILE;
 
 module.exports = function (app) {
-  //TODO: Aggiungere last call e
 
+    //TODO: Add last call
   let lastCall = null;
   let updateTimer = null;
   let unsubPos = null;
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  // APPLE METEO
 
+  //Apple Weather
   function getAppleWeatherToken() {
     try {
-      const privateKey = fs.readFileSync(`./${authPath}`, "utf8");
+        //Apple Weather
+                const privateKeyPath = path.resolve(__dirname, '..', authPath);
+                const privateKey = fs.readFileSync(privateKeyPath, "utf8");
 
       const headers = {
         alg: "ES256",
@@ -108,9 +93,9 @@ module.exports = function (app) {
     const currentForecast = forecast.currentWeather;
     //Currents
     const windSpeed = currentForecast.windSpeed;
-    const temperature = current.temperature;
-    const pressure = current.pressure;
-    const rain = current.precipitationIntensity;
+    const temperature = currentForecast.temperature;
+    const pressure = currentForecast.pressure;
+    const rain = currentForecast.precipitationIntensity;
 
     const forecastDataset = {
       temperature: temperature,
@@ -126,7 +111,6 @@ module.exports = function (app) {
   }
 
   //Parametri configurabili dalle impostazioni del plugin
-
   const publish = ({ temperature, pressure, rain, wind }, settings) => {
     const values = [
       {
@@ -238,16 +222,13 @@ module.exports = function (app) {
         }
       });
 
-      // router.get("/currentForecast", async (req, res) => {
-      //   try {
-      //     const location = {
+      router.get("/currentForecast", async (req, res) => {
+        try {
 
-      //     }
-      //     const forecastsData = async getAppleWeatherForecast()
-      //   } catch {
+        } catch {
 
-      //   }
-      // })
+        }
+      })
     },
 
     getOpenApi: () => ({
@@ -283,71 +264,71 @@ module.exports = function (app) {
 //############ APPLE WEATHER
 
 //############ OPENMETEO
-async function getOpenMeteoForecast(latitude, longitude) {
-  const api =
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-    `&current=temperature_2m,pressure_msl,rain,precipitation,wind_speed_10m`;
-  try {
-    const res = await fetch(api, {
-      headers: { Accept: "application/json, text/plain;q=0.9,*/q=0.8" },
-    });
-
-    if (!res.ok) {
-      throw new Error(
-        `FORECAST REQUEST FAIL ${res.status} ----- ${res.statusText}`,
-      );
-    }
-
-    const ct = res.headers.get("content-type") || "";
-    if (ct.includes("application/json")) {
-      const data = await res.json();
-
-      // UNITS (da vedere se si possono usare per migliroare la lettura dei dati)
-      const temperatureUnit = data.current_units.temperature_2m;
-      const pressureUnit = data.current_units.pressure_msl;
-      const windUnit = data.current_units.wind_speed_10m;
-      const rainUnit = data.current_units.rain;
-
-      //Forecast Datas
-      const temperature = data.current.temperature_2m;
-      const pressure = data.current.pressure_msl;
-      const rain = data.current.rain;
-      const windSpeed = data.current.wind_speed_10m;
-
-      console.log(
-        `-------FORECAST STREAM------- LON: ${longitude} Temp: ${temperature}${temperatureUnit}, Pressure: ${pressure}${pressureUnit}, Rain: ${rain}${rainUnit}, Wind: ${windSpeed}${windUnit}`,
-      );
-
-      return {
-        temperature: temperature,
-        pressure: pressure,
-        rain: rain,
-        wind: windSpeed,
-      };
-    } else {
-      const text = await res.text();
-      console.log("FORECAST TEXT", text);
-    }
-  } catch (error) {
-    console.error(`FORECAST REQUEST FAILED: ${error}`);
-  }
-}
+// async function getOpenMeteoForecast(latitude, longitude) {
+//   const api =
+//     `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+//     `&current=temperature_2m,pressure_msl,rain,precipitation,wind_speed_10m`;
+//   try {
+//     const res = await fetch(api, {
+//       headers: { Accept: "application/json, text/plain;q=0.9,*/q=0.8" },
+//     });
+//
+//     if (!res.ok) {
+//       throw new Error(
+//         `FORECAST REQUEST FAIL ${res.status} ----- ${res.statusText}`,
+//       );
+//     }
+//
+//     const ct = res.headers.get("content-type") || "";
+//     if (ct.includes("application/json")) {
+//       const data = await res.json();
+//
+//       // UNITS (da vedere se si possono usare per migliroare la lettura dei dati)
+//       const temperatureUnit = data.current_units.temperature_2m;
+//       const pressureUnit = data.current_units.pressure_msl;
+//       const windUnit = data.current_units.wind_speed_10m;
+//       const rainUnit = data.current_units.rain;
+//
+//       //Forecast Datas
+//       const temperature = data.current.temperature_2m;
+//       const pressure = data.current.pressure_msl;
+//       const rain = data.current.rain;
+//       const windSpeed = data.current.wind_speed_10m;
+//
+//       console.log(
+//         `-------FORECAST STREAM------- LON: ${longitude} Temp: ${temperature}${temperatureUnit}, Pressure: ${pressure}${pressureUnit}, Rain: ${rain}${rainUnit}, Wind: ${windSpeed}${windUnit}`,
+//       );
+//
+//       return {
+//         temperature: temperature,
+//         pressure: pressure,
+//         rain: rain,
+//         wind: windSpeed,
+//       };
+//     } else {
+//       const text = await res.text();
+//       console.log("FORECAST TEXT", text);
+//     }
+//   } catch (error) {
+//     console.error(`FORECAST REQUEST FAILED: ${error}`);
+//   }
+// }
 
 //Crea un template da inviare a SignalK con i dati meteo della posizione specificata
-async function buildOpenMeteoForecastWith(settings) {
-  const location = app.getSelfPath("navigation.position");
-
-  if (!location || location.latitude == null || location.longitude == null) {
-    if (app.debug)
-      app.debug(
-        "La posizione non è ancora disponibile. Gli aggiornamenti riprenderanno a breve",
-      );
-    return;
-  }
-
-  const forecast = await getOpenMeteoForecast(
-    location.latitude,
-    location.longitude,
-  );
-  publish(forecast, settings);
-}
+// async function buildOpenMeteoForecastWith(settings) {
+//   const location = app.getSelfPath("navigation.position");
+//
+//   if (!location || location.latitude == null || location.longitude == null) {
+//     if (app.debug)
+//       app.debug(
+//         "La posizione non è ancora disponibile. Gli aggiornamenti riprenderanno a breve",
+//       );
+//     return;
+//   }
+//
+//   const forecast = await getOpenMeteoForecast(
+//     location.latitude,
+//     location.longitude,
+//   );
+//   publish(forecast, settings);
+// }
