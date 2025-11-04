@@ -12,141 +12,131 @@ const serviceID = process.env.WEATHERKIT_SERVICE_ID;
 const keyID = process.env.WEATHERKIT_KEY_ID;
 const authPath = process.env.WEATHERKIT_AUTH_FILE;
 
+let lastCall = null;
+let updateTimer = null;
+let unsubPos = null;
+
+const lang = "it"; //"it"
+const timezone = "Europe/Rome"; //"Europe/Rome"
+
 module.exports = function (app) {
 
     //TODO: Add last call
-  let lastCall = null;
-  let updateTimer = null;
-  let unsubPos = null;
 
-  //Apple Weather
-  function getAppleWeatherToken() {
-    try {
-        //Apple Weather
-                const privateKeyPath = path.resolve(__dirname, '..', authPath);
-                const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+    function getAppleWeatherToken() {
+        try {
+            //Apple Weather
+            const privateKeyPath = path.resolve(__dirname, '..', authPath);
+            const privateKey = fs.readFileSync(privateKeyPath, "utf8");
 
-      const headers = {
-        alg: "ES256",
-        kid: keyID,
-        id: `${teamID}.${serviceID}`,
-      };
+            const headers = {
+                alg: "ES256",
+                kid: keyID,
+                id: `${teamID}.${serviceID}`,
+            };
 
-      const nowInSeconds = Math.floor(Date.now() / 1000);
-      const expirationTime = nowInSeconds + 604.8; //7 days
+            const nowInSeconds = Math.floor(Date.now() / 1000);
+            const expirationTime = nowInSeconds + 604.8; //7 days
 
-      const payload = {
-        iss: teamID,
-        iat: nowInSeconds,
-        exp: expirationTime,
-        sub: serviceID,
-      };
+            const payload = {
+                iss: teamID,
+                iat: nowInSeconds,
+                exp: expirationTime,
+                sub: serviceID,
+            };
 
-      const token = jwt.sign(payload, privateKey, {
-        algorithm: "ES256",
-        header: headers,
-      });
+            const token = jwt.sign(payload, privateKey, {
+                algorithm: "ES256",
+                header: headers,
+            });
 
-      console.log(token);
+            console.log(token);
 
-      return token;
-    } catch (error) {
-      console.error("Errore durante la generazione del JWT:", error.message);
-    }
-  }
-
-  var lang = "it"; //"it"
-  var timezone = "Europe/Rome"; //"Europe/Rome"
-
-  async function getAppleWeatherForecast(lat, lon) {
-    const token = getAppleWeatherToken();
-    const dataSets = ["currentWeather"];
-    const url = `https://weatherkit.apple.com/api/v1/weather/${lang}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(timezone)}`;
-
-    console.log(url);
-
-    const { data } = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 15000,
-    });
-    return data;
-  }
-
-  async function buildAppleWeatherForecastWith(settings) {
-    var location = app.getSelfPath("navigation.position");
-
-    if (!location || location.latitude == null || location.longitude == null) {
-      app.debug("UNKNWON LOCATION, COORDINATES OVERRIDE");
-      location = {
-        latitude: 13.245,
-        longitude: 15.558,
-      };
+            return token;
+        } catch (error) {
+            console.error("Errore durante la generazione del JWT:", error.message);
+        }
     }
 
-    const forecast = await getAppleWeatherForecast(
-      location.latitude,
-      location.longitude,
-    );
-    //ONLY CURRENT
-    app.debug("Current Apple Weather Forecast");
 
-    const currentForecast = forecast.currentWeather;
-    //Currents
-    const windSpeed = currentForecast.windSpeed;
-    const temperature = currentForecast.temperature;
-    const pressure = currentForecast.pressure;
-    const rain = currentForecast.precipitationIntensity;
+    async function getAppleWeatherForecast(lat, lon) {
+        const token = getAppleWeatherToken();
+        const dataSets = ["currentWeather"];
+        const url = `https://weatherkit.apple.com/api/v1/weather/${lang}/${lat}/${lon}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(timezone)}`;
 
-    const forecastDataset = {
-      temperature: temperature,
-      pressure: pressure,
-      rain: rain,
-      wind: windSpeed,
-    };
+        console.log(url);
 
-    //DEBUG ONLY
-    console.log(forecastDataset);
+        const { data } = await axios.get(url, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 15000,
+        });
+        return data;
+    }
 
-    publish(forecastDataset, settings);
-  }
+    async function buildAppleWeatherForecastWith(settings, location) {
+
+        if (!location || location.latitude == null || location.longitude == null) {
+            console.info("UNKNWON LOCATION, COORDINATES OVERRIDE");
+            location = {
+                latitude: 13.245,
+                longitude: 15.558,
+            };
+        }
+
+        const forecast = await getAppleWeatherForecast(
+            location.latitude,
+            location.longitude,
+        );
+
+        const currentForecast = forecast.currentWeather;
+        //Currents
+        const windSpeed = currentForecast.windSpeed;
+        const temperature = currentForecast.temperature;
+        const pressure = currentForecast.pressure;
+        const rain = currentForecast.precipitationIntensity;
+
+        const forecastDataset = {
+            temperature: temperature,
+            pressure: pressure,
+            rain: rain,
+            wind: windSpeed,
+        };
+
+        //DEBUG ONLY
+        console.log(forecastDataset);
+
+        publish(forecastDataset, settings);
+    }
 
   //Parametri configurabili dalle impostazioni del plugin
   const publish = ({ temperature, pressure, rain, wind }, settings) => {
     const values = [
       {
-        path: "mebweather.forecast.temperature",
+        path: "meb.forecast.temperature",
         value: temperature,
         meta: { units: "c", displayName: "Temperatura" },
       },
       {
-        path: "mebweather.forecast.pressure",
+        path: "meb.forecast.pressure",
         value: pressure,
         meta: { units: "hPa", displayName: "Pressione" },
       },
       {
-        path: "mebweather.forecast.rain",
+        path: "meb.forecast.rain",
         value: rain,
         meta: { units: "mm", displayName: "Pioggia" },
       },
       {
-        path: "mebweather.forecast.wind.speed",
+        path: "meb.forecast.wind.speed",
         value: wind,
         meta: { units: "km/s", displayName: "Velocità del Vento" },
       },
       {
-        path: "mebweather.apiType",
+        path: "meb.apiType",
         value: (settings && settings.apiType) || "unspecified",
       },
       {
-        path: "mebweather.longitude",
-        value: (settings && settings.latPosition) || 0,
-      },
-      {
-        path: "mebweather.latitude",
-        value: (settings && settings.lonPosition) || 0,
-      },
-      {
-        path: "mebweather.refreshTimer",
+        path: "meb.refreshTimer",
         value: 60,
       },
     ];
@@ -157,8 +147,8 @@ module.exports = function (app) {
   };
 
   const plugin = {
-    id: "meb-weather",
-    name: "MEB's Weather Plugin",
+    id: "meb",
+    name: "MEB's Plugin",
 
     start: async (settings) => {
       const updater = Math.max(
@@ -166,12 +156,14 @@ module.exports = function (app) {
         Number((settings && settings.updaterInterval) ?? 60),
       );
 
+      var locationStream =  app.getSelfPath("navigation.position");
+
       //TODO: Primo tentativo all'avvio
-      await buildAppleWeatherForecastWith(settings);
+      await buildAppleWeatherForecastWith(settings, locationStream);
 
       updateTimer = setInterval(() => {
         //TODO: Publish
-        buildAppleWeatherForecastWith(settings).catch(
+        buildAppleWeatherForecastWith(settings, locationStream).catch(
           (e) => app.error && app.error(e.message),
         );
       }, updater * 1000);
@@ -209,6 +201,15 @@ module.exports = function (app) {
             "Scegli ogni quanti secondi i dati meteo si aggiorneranno. (Vedi i limiti di chiamate del tuo piano per ricevere sempre aggiornamenti). Max. 500.000 chimate al mese",
         },
       },
+        forecastAPISource: {
+          type: "string",
+          title: "API per dati metereologici",
+          default: "appleWeather",
+          enum: ["unspecified", "openMeteo", "appleWeather"],
+          enumNames: ["Unspecified", "OpenMeteo", "Apple WeatherKit"],
+          description: "Scegli se usare OpenMeteo o Apple WeatherKit per ottenere i dati sulle condizioni meteo nella posizione dell'imbarcazione",
+        },
+
     }),
 
     // Solo per test
@@ -233,8 +234,8 @@ module.exports = function (app) {
 
     getOpenApi: () => ({
       openapi: "3.0.0",
-      info: { title: "MebWeather API Portal", version: "1.0.0" },
-      servers: [{ url: "/plugins/meb-weather" }],
+      info: { title: "Meb's API Portal", version: "1.0.0" },
+      servers: [{ url: "/plugins/meb" }],
       paths: {
         "/ping": {
           get: {
@@ -260,6 +261,9 @@ module.exports = function (app) {
 
   return plugin;
 };
+
+//Apple Weather
+
 
 //############ APPLE WEATHER
 

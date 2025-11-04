@@ -4,6 +4,8 @@ Questa è una lista di template dei dati restituiti dall'API di Apple Meteo.
 
 ## Current Forecast
 
+
+``` json
 {
   "currentWeather": {
     "name": "CurrentWeather",
@@ -39,3 +41,4 @@ Questa è una lista di template dei dati restituiti dall'API di Apple Meteo.
     "windSpeed": 10.95
   }
 }
+```

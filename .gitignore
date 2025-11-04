@@ -19,5 +19,6 @@ run.js
 # Misc
 .cache/
 node_modules/
+.quodana.yaml
 
 AuthKey_Z2QLL57668.p8
