@@ -1,15 +1,26 @@
 {
-  "name": "meb-weather",
-  "version": "1.0.0",
+  "name": "meb",
+  "version": "1.2.0",
   "description": "Il Plugin personalizzato realizzato dal MEB per tener traccia del meteo in base alla posizione dell'imbarcazione.",
   "main": "plugin/index.cjs",
   "keywords": [
     "signalk-node-server-plugin",
-    "signalk-category-utility"
+    "signalk-category-utility",
+    "signalk-plugin"
   ],
+  "schema": {
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "title": "Abilita plugin",
+        "default": true
+      }
+    }
+  },
   "signalk-plugin-enabled-by-default": true,
   "signalk": {
-    "displayName": "MEB's Weather Plugin"
+    "displayName": "MEB"
   },
   "dependencies": {
     "axios": "^1.12.2",
