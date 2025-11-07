@@ -22,6 +22,7 @@ module.exports = function (app) {
                 throw error;
             }
 
+
             const updateInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
 
             let location = null;
