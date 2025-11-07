@@ -1,8 +1,7 @@
-# MEB's Weather
+# MEB SignalK Plugin
 
-
-> Italiano 🇮🇹
-> English 🇬🇧/🇺🇸
+> Unapdated version
+> 
 
 ---
 
