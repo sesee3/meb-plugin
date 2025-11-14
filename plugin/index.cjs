@@ -37,7 +37,6 @@ module.exports = function (app) {
                 }
 
                 try {
-                    console.log("Inizio aggiornamento meteo con posizione:", location);
 
                     const sgData = await getStormGlassWeather(location);
                     const weatherKitData = await getAppleWeatherForecast(location);
@@ -51,11 +50,14 @@ module.exports = function (app) {
                         temperature: weatherKitData.temperature,
                         pressure: weatherKitData.pressure,
                         rain: weatherKitData.rain,
+                        appleWindSpeed: weatherKitData.windSpeed,
+                        appleWindDirection: weatherKitData.windDirection,
                         swell: sgData.swell,
                         currents: sgData.currents,
                         wind: sgData.wind,
                         waves: sgData.waves,
                     };
+
 
                     publish(app, weatherData, settings);
 
@@ -73,8 +75,6 @@ module.exports = function (app) {
                     location = pos;
                     settings.latitude = pos.latitude;
                     settings.longitude = pos.longitude;
-
-                    console.log("🌍 Updated location in stormglass.js:", pos);
 
                     if (!updateTimer) {
                         updateWeather();
@@ -158,54 +158,9 @@ module.exports = function (app) {
             });
         },
 
-        onSettingsChanged: (newSettings) => {
-            if (newSettings.forceUpdate) {
-                console.log("🔄 Forcing manual weather update...");
-                forceUpdate(newSettings).then(r => {
-                    console.log("FORCE UPDATE COMPLETED")
-                });
-            }
-        },
-
         getOpenApi: getOpenApiSpec,
     };
 
-    //an async function
-    async function forceUpdate(settings) {
-        location = {
-            latitude: Number(settings?.latitude),
-            longitude: Number(settings?.longitude),
-        };
-
-        try {
-            console.log("Inizio aggiornamento meteo con posizione:", location);
-
-            const sgData = await getStormGlassWeather(location);
-            const weatherKitData = await getAppleWeatherForecast(location);
-
-            if (!sgData || !sgData.swell) {
-                console.error("⚠️ Dati StormGlass non validi:", sgData);
-                return;
-            }
-
-            const weatherData = {
-                temperature: weatherKitData.temperature,
-                pressure: weatherKitData.pressure,
-                rain: weatherKitData.rain,
-                swell: sgData.swell,
-                currents: sgData.currents,
-                wind: sgData.wind,
-                waves: sgData.waves,
-            };
-
-            console.log("FORCED UPDATED: ", weatherData)
-            publish(app, weatherData, settings);
-
-        } catch (error) {
-            console.error("❌ WEATHER UPDATE FAIL:", error.message);
-            console.error(error.stack);
-        }
-    }
 
     return plugin;
 };

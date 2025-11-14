@@ -36,6 +36,8 @@ async function getStormGlassWeather(location) {
     });
 
 
+    //meb.*.currents_
+
 
     // Costruisci il risultato per l'ora più vicina
     let result = {

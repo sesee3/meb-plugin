@@ -44,11 +44,13 @@ async function getForecast(location) {
         timeout: 15000,
     });
 
+    console.log(data)
+
     return {
-        temperature: data.temperature,
-        pressure: data.pressure,
-        rain: data.precipitationIntensity,
-        windSpeed: data.windSpeed,
+        temperature: data.currentWeather.temperature,
+        rain: data.currentWeather.precipitationIntensity,
+        windSpeed: data.currentWeather.windSpeed,
+        windDirection: data.currentWeather.windDirection,
     };
 }
 
