@@ -5,10 +5,17 @@ const { setupRoutes, getOpenApiSpec } = require("./routes.js");
 const { getStormGlassWeather } = require("./stormglass.js");
 const {getAppleWeatherForecast} = require("./weatherkit");
 
+const mapHandler = require("./map.handler.js");
+
+const fs = require("fs");
+const path = require("path");
+
 module.exports = function (app) {
     let updateTimer = null;
     let unsubPos = null;
     const lastCallRef = { current: null };
+
+    let unsubscribe = []
 
     const plugin = {
         id: "meb",
@@ -21,7 +28,6 @@ module.exports = function (app) {
                 app.error(error.message);
                 throw error;
             }
-
 
             const updateInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
 
@@ -82,6 +88,9 @@ module.exports = function (app) {
                     }
                 }
             });
+
+            mapHandler(app, settings);
+
         },
 
         stop: async () => {
@@ -115,6 +124,11 @@ module.exports = function (app) {
                     enum: ["unspecified", "openMeteo", "appleWeatherKit"],
                     enumNames: ["Unspecified", "OpenMeteo", "Apple WeatherKit"],
                     description: "Scegli se usare OpenMeteo o Apple WeatherKit per ottenere i dati sulle condizioni meteo nella zona dell'imbarcazione per le prossime ore",
+                },
+                mapboxKey: {
+                    type: "string",
+                    title: "Mapbox Access Token",
+                    description: "Token di accesso Mapbox per visualizzare la mappa"
                 },
                 latitude: {
                     type: "number",

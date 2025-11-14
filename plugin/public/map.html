@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Mappa Meteo SignalK</title>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #e0e0e0;
+        }
+        .icon {
+            width: 28px;
+            height: 28px;
+            font-size: 28px;
+            transform-origin: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #sidebar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        #sidebar button {
+            font-size: 14px;
+            cursor: pointer;
+            background: #0078a8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+        }
+        #sidebar button:hover {
+            background: #005f7f;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="sidebar">
+        <button id="toggleAnchor">🔒 Ancorato</button>
+    </div>
+
+    <script>
+        mapboxgl.accessToken = "pk.eyJ1Ijoic2VzZWUzIiwiYSI6ImNtZ2dydndkMDBsNjUya3NjeW91dW41MzcifQ.M2qxj0wL1W7plRzIataojQ";
+
+        // Default center coordinates (e.g., Gulf of Genoa)
+        const defaultCenter = [9.19, 44.41];
+        const defaultZoom = 4;
+
+        // Initialize the map
+        const map = new mapboxgl.Map({
+            container: "map",
+            style: "mapbox://styles/mapbox/streets-v12",
+            center: defaultCenter,
+            zoom: defaultZoom,
+            pitch: 0,
+            bearing: 0
+        });
+
+        // Resize the map after it's loaded to ensure proper sizing
+        map.on('load', () => {
+            map.resize();
+        });
+
+        // Markers initialization
+        let boatMarker = null;
+        let waveMarker = null;
+        let currentMarker = null;
+        let navArrowMarker = null;
+
+        // Create icon elements for markers once
+        function createIcon(innerHTML) {
+            const el = document.createElement("div");
+            el.className = "icon";
+            el.innerHTML = innerHTML;
+            return el;
+        }
+
+        // Initialize markers with default center
+        boatMarker = new mapboxgl.Marker({ color: "blue" }).setLngLat(defaultCenter).addTo(map);
+
+        waveMarker = new mapboxgl.Marker(createIcon("🌊")).setLngLat(defaultCenter).addTo(map);
+        waveMarker.getElement().title = "Onda";
+
+        currentMarker = new mapboxgl.Marker(createIcon("➡️")).setLngLat(defaultCenter).addTo(map);
+
+        navArrowMarker = new mapboxgl.Marker({ element: createIcon("▲") }).setLngLat(defaultCenter).addTo(map);
+
+        // Variables to store SignalK data
+        let position = null;
+        let waveDir = null;
+        let waveHeight = null;
+        let currentDir = null;
+        let currentSpeed = null;
+        let courseOverGround = null;
+
+        // Variable to control map anchoring mode
+        let isAnchored = true;
+
+        // Connect to SignalK WebSocket
+        const ws = new WebSocket(`ws://${location.host}/signalk/v1/stream?subscribe=all`);
+
+        ws.onmessage = (msg) => {
+            const data = JSON.parse(msg.data);
+            if (!data.updates) return;
+
+            data.updates.forEach(u => {
+                u.values?.forEach(v => {
+                    switch (v.path) {
+                        case "navigation.position":
+                            position = [v.value.longitude, v.value.latitude];
+                            break;
+                        case "environment.wave.direction":
+                            waveDir = v.value;
+                            break;
+                        case "environment.wave.height":
+                            waveHeight = v.value;
+                            break;
+                        case "environment.current.direction":
+                            currentDir = v.value;
+                            break;
+                        case "environment.current.speed":
+                            currentSpeed = v.value;
+                            break;
+                        case "navigation.courseOverGroundTrue":
+                            courseOverGround = v.value * (180 / Math.PI); // convert rad to degrees
+                            break;
+                    }
+                });
+            });
+
+            updateMap();
+        };
+
+        function updateMap() {
+            if (!position) return;
+
+            // Update boat marker position
+            boatMarker.setLngLat(position);
+
+            // Update wave marker position and rotation
+            waveMarker.setLngLat(position);
+            if (waveDir !== null) {
+                waveMarker.getElement().style.transform = `rotate(${waveDir}deg)`;
+            } else {
+                waveMarker.getElement().style.transform = `rotate(0deg)`;
+            }
+            waveMarker.getElement().title = waveHeight !== null ? `Altezza onda: ${waveHeight} m` : "Onda";
+
+            // Update current marker position and rotation
+            currentMarker.setLngLat(position);
+            if (currentDir !== null) {
+                currentMarker.getElement().style.transform = `rotate(${currentDir}deg)`;
+            } else {
+                currentMarker.getElement().style.transform = `rotate(0deg)`;
+            }
+
+            // Update navigation arrow position and rotation
+            navArrowMarker.setLngLat(position);
+            if (courseOverGround !== null) {
+                navArrowMarker.getElement().style.transform = `rotate(${courseOverGround}deg)`;
+            } else {
+                navArrowMarker.getElement().style.transform = `rotate(0deg)`;
+            }
+
+            // Center map on boat position only if anchored
+            if (isAnchored) {
+                map.easeTo({ center: position, pitch: 0, bearing: 0 });
+            }
+        }
+
+        // Toggle anchor mode button
+        const toggleAnchorBtn = document.getElementById('toggleAnchor');
+        toggleAnchorBtn.addEventListener('click', () => {
+            isAnchored = !isAnchored;
+            if (isAnchored) {
+                toggleAnchorBtn.textContent = "🔒 Ancorato";
+                if (position) {
+                    map.easeTo({ center: position, pitch: 0, bearing: 0 });
+                }
+            } else {
+                toggleAnchorBtn.textContent = "🔓 Libero";
+            }
+        });
+    </script>
+
+</body>
+</html>
