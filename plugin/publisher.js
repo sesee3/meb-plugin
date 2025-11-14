@@ -1,44 +1,35 @@
 const { getAppleWeatherForecast } = require("./weatherkit.js");
 const { getStormGlassForecasts } = require("./stormglass.js");
 
-function publishWeatherData(app, weatherData, settings) {
-    const values = [
-        {
-            path: "meb.forecast.temperature",
-            value: weatherData.temperature,
-            meta: { units: "c", displayName: "Temperatura" },
-        },
-        {
-            path: "meb.forecast.pressure",
-            value: weatherData.pressure,
-            meta: { units: "hPa", displayName: "Pressione" },
-        },
-        {
-            path: "meb.forecast.rain",
-            value: weatherData.rain,
-            meta: { units: "mm", displayName: "Pioggia" },
-        },
-        {
-            path: "meb.forecast.wind.speed",
-            value: weatherData.windSpeed,
-            meta: { units: "km/s", displayName: "Velocità del Vento" },
-        },
-        {
-            path: "meb.forecast.wind.direction",
-            value: weatherData.windDirection,
-            meta: {
-                units: "", displayName: "Direzione del Vento"
+function generateValues(data, prefix = "meb") {
+    const values = [];
+
+    function traverse(obj, pathParts) {
+        for (const key in obj) {
+            if (obj[key] === undefined || obj[key] === null) continue;
+
+            const newPath = [...pathParts, key];
+
+            if (typeof obj[key] === "object" && !Array.isArray(obj[key])) {
+                traverse(obj[key], newPath);
+            } else {
+                values.push({
+                    path: newPath.join("."),
+                    value: obj[key],
+                    meta: { displayName: key },
+                });
             }
-        },
-        {
-            path: "meb.apiType",
-            value: settings?.apiType || "appleWeatherKit",
-        },
-        {
-            path: "mebw.refreshTimer",
-            value: 60,
-        },
-    ];
+        }
+    }
+
+    traverse(data, [prefix]);
+    return values;
+}
+
+function publishWeatherData(app, weatherData, settings) {
+    const values = generateValues(weatherData);
+
+    console.debug("📤 Dati generati per la pubblicazione:", values);
 
     app.handleMessage("meb", {
         updates: [{ values }],

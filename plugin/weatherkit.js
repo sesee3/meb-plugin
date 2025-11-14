@@ -16,8 +16,8 @@ function generateToken() {
         id: `${config.teamId}.${config.serviceId}`,
     };
 
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    const expirationTime = nowInSeconds + 2592000;
+const nowInSeconds = Math.floor(Date.now() / 1000);
+const expirationTime = nowInSeconds + 31536000; // 1y
 
     const payload = {
         iss: config.teamId,

@@ -27,28 +27,41 @@ module.exports = function (app) {
 
             let location = null;
 
-            // Funzione per aggiornare i dati meteo
             const updateWeather = async () => {
                 if (!location || !location.latitude || !location.longitude) {
-                    console.log("⏳ Attesa posizione valida...");
-                    return;
+                    console.error("Posizione non disponibile, uso lat/lon dal pannello impostazioni");
+                    location = {
+                        latitude: Number(settings?.latitude),
+                        longitude: Number(settings?.longitude),
+                    };
                 }
 
                 try {
-                    console.log("📍 Posizione attuale:", location);
+                    console.log("Inizio aggiornamento meteo con posizione:", location);
 
                     const sgData = await getStormGlassWeather(location);
                     const weatherKitData = await getAppleWeatherForecast(location);
 
+                    if (!sgData || !sgData.swell) {
+                        console.error("⚠️ Dati StormGlass non validi:", sgData);
+                        return;
+                    }
+
                     const weatherData = {
                         temperature: weatherKitData.temperature,
-                        // aggiungi qui eventuali altri dati da pubblicare
+                        pressure: weatherKitData.pressure,
+                        rain: weatherKitData.rain,
+                        swell: sgData.swell,
+                        currents: sgData.currents,
+                        wind: sgData.wind,
+                        waves: sgData.waves,
                     };
 
-                    await publish(app, weatherData, settings);
-                    console.log("✅ Dati meteo pubblicati con successo");
+                    publish(app, weatherData, settings);
+
                 } catch (error) {
-                    app.error(`WEATHER UPDATE FAIL: ${error.message}, ${error}`);
+                    console.error("❌ WEATHER UPDATE FAIL:", error.message);
+                    console.error(error.stack);
                 }
             };
 
@@ -56,9 +69,13 @@ module.exports = function (app) {
             const locationStreamPath = app.streambundle.getSelfStream("navigation.position");
             unsubPos = locationStreamPath.onValue((pos) => {
                 if (pos && pos.latitude && pos.longitude) {
-                    location = pos;
 
-                    // Se è la prima volta che otteniamo una posizione, avvia subito il primo aggiornamento
+                    location = pos;
+                    settings.latitude = pos.latitude;
+                    settings.longitude = pos.longitude;
+
+                    console.log("🌍 Updated location in stormglass.js:", pos);
+
                     if (!updateTimer) {
                         updateWeather();
                         updateTimer = setInterval(updateWeather, updateInterval * 1000);
@@ -93,11 +110,23 @@ module.exports = function (app) {
                 },
                 forecastAPISource: {
                     type: "string",
-                    title: "API per dati metereologici",
+                    title: "Meteo delle prossime ore",
                     default: "appleWeather",
                     enum: ["unspecified", "openMeteo", "appleWeatherKit"],
                     enumNames: ["Unspecified", "OpenMeteo", "Apple WeatherKit"],
-                    description: "Scegli se usare OpenMeteo o Apple WeatherKit per ottenere i dati sulle condizioni meteo nella posizione dell'imbarcazione",
+                    description: "Scegli se usare OpenMeteo o Apple WeatherKit per ottenere i dati sulle condizioni meteo nella zona dell'imbarcazione per le prossime ore",
+                },
+                latitude: {
+                    type: "number",
+                    title: "Override Latitudine",
+                    default: 38.17937,
+                    description: "Latitudine da usare se non è disponibile la posizione da SignalK"
+                },
+                longitude: {
+                    type: "number",
+                    title: "Override Longitudine ",
+                    default: 15.56699,
+                    description: "Longitudine da usare se non è disponibile la posizione da SignalK"
                 },
             },
 
@@ -105,11 +134,78 @@ module.exports = function (app) {
         }),
 
         registerWithRouter: (router) => {
+            // mantiene le route esistenti
             setupRoutes(router, lastCallRef);
+
+            // Endpoint API JSON che restituisce tutti gli hours salvati dall'ultima chiamata a StormGlass
+            router.get('/signalk/meb/waterPredictions/data', async (req, res) => {
+                try {
+                    // richiede i dati più recenti salvati in locale (se disponibili) oppure chiede all'API
+                    const hours = await getStormGlassAllHours();
+                    res.json({ success: true, hours });
+                } catch (err) {
+                    console.error('ERROR /signalk/meb/waterPredictions/data', err);
+                    res.status(500).json({ success: false, error: err.message });
+                }
+            });
+
+            // Pagina HTML con grafico e toggle tema
+            router.get('/signalk/meb/waterPredictions', (req, res) => {
+                const html = "";
+
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                res.send(html);
+            });
+        },
+
+        onSettingsChanged: (newSettings) => {
+            if (newSettings.forceUpdate) {
+                console.log("🔄 Forcing manual weather update...");
+                forceUpdate(newSettings).then(r => {
+                    console.log("FORCE UPDATE COMPLETED")
+                });
+            }
         },
 
         getOpenApi: getOpenApiSpec,
     };
+
+    //an async function
+    async function forceUpdate(settings) {
+        location = {
+            latitude: Number(settings?.latitude),
+            longitude: Number(settings?.longitude),
+        };
+
+        try {
+            console.log("Inizio aggiornamento meteo con posizione:", location);
+
+            const sgData = await getStormGlassWeather(location);
+            const weatherKitData = await getAppleWeatherForecast(location);
+
+            if (!sgData || !sgData.swell) {
+                console.error("⚠️ Dati StormGlass non validi:", sgData);
+                return;
+            }
+
+            const weatherData = {
+                temperature: weatherKitData.temperature,
+                pressure: weatherKitData.pressure,
+                rain: weatherKitData.rain,
+                swell: sgData.swell,
+                currents: sgData.currents,
+                wind: sgData.wind,
+                waves: sgData.waves,
+            };
+
+            console.log("FORCED UPDATED: ", weatherData)
+            publish(app, weatherData, settings);
+
+        } catch (error) {
+            console.error("❌ WEATHER UPDATE FAIL:", error.message);
+            console.error(error.stack);
+        }
+    }
 
     return plugin;
 };
