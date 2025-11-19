@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helm Steering UI</title>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .widget-container {
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .visualization-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .arrow-svg {
+            width: 300px;
+            height: 300px;
+            overflow: visible;
+        }
+
+        .arrow-head {
+            fill: none;
+            stroke: #007aff;
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 2px 4px rgba(0, 122, 255, 0.3));
+            transition: transform 0.1s linear;
+        }
+
+        .arrow-stem {
+            fill: none;
+            stroke: #007aff;
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: d 0.1s linear;
+            filter: drop-shadow(0 2px 4px rgba(0, 122, 255, 0.3));
+            transform: rotate(-40deg);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0 20px;
+            text-align: left;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .control-group input[type="number"]:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+
+        .slider-container {
+            width: 100%;
+            margin-top: 30px;
+            position: relative;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            height: 8px;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+            background: #e0e0e0;
+            transition: background 0.3s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+            transition: transform 0.2s ease;
+            margin-top: -8px;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007aff;
+            transition: all 0.3s ease;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .percentage-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: 800;
+            color: rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="widget-container">
+        <h2>Helm Steering Control</h2>
+
+
+        <!---- Verso sinistra: style="scale: -1 1; rotate: 90;"-->
+        <!---- verso destra: style="scale: 1 1; rotate: 0;"-->
+
+        <div class="visualization-container" style="scale: 1 1; rotate: 0;">
+            <div class=" percentage-display" id="bg-percentage">0%</div>
+            <svg class="arrow-svg" viewBox="0 0 200 200">
+                <defs>
+                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.2" />
+                    </filter>
+                </defs>
+
+                <g transform="translate(100, 100)">
+                    <path id="arrow-stem" class="arrow-stem" />
+
+                    <g id="elemento-svg" transform="rotate(75 0 0) translate(-30 -115) scale(1)" fill="#007aff">
+                        <path
+                            d="M36.5299 45.7049L1.75948 80.3705C0.492705 81.5658 0 83.1127 0 84.8004C0 88.3162 2.60419 91.0583 6.12344 91.0583C8.02389 91.0583 9.43165 90.3553 10.6281 89.23L48.8474 50.6972C50.3958 49.0098 51.0292 47.4629 51.0292 45.7049C51.0292 44.0174 50.2548 42.2597 48.8474 40.783L10.6281 1.96883C9.43165 0.773469 8.02389 -3.6458e-07 6.05309 -3.6458e-07C2.60419 -3.6458e-07 0 2.88294 0 6.3987C0 8.01594 0.492707 9.70352 1.68914 10.8989L36.5299 45.7049Z"
+                            fill="#007aff"/>
+                    </g>
+                </g>
+            </svg>
+        </div>
+
+        <div class=" controls-grid">
+                            <div class="control-group">
+                                <label for="start-val">Valore Inizio</label>
+                                <input type="number" id="start-val" value="0" step="1">
+                            </div>
+
+                            <div class="control-group">
+                                <label for="end-val">Valore Fine</label>
+                                <input type="number" id="end-val" value="100" step="1">
+                            </div>
+        </div>
+
+        <div class="slider-container">
+            <input type="range" id="main-slider" min="0" max="100" value="0" step="1">
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="val-current">0</div>
+                <div class="stat-label">Valore Attuale</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="val-percent">0%</div>
+                <div class="stat-label">Progresso</div>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <script>
+        const startInput = document.getElementById('start-val');
+        const endInput = document.getElementById('end-val');
+        const slider = document.getElementById('main-slider');
+
+        const valCurrentDisplay = document.getElementById('val-current');
+        const valPercentDisplay = document.getElementById('val-percent');
+        const bgPercentage = document.getElementById('bg-percentage');
+
+        const arrowStem = document.getElementById('arrow-stem');
+        const arrowHead = document.getElementById('arrow-head');
+
+        const RADIUS = 70;
+        const HEAD_ANGLE = 30;
+        const ANGLE_END = 30;
+        const MAX_ARC_LENGTH = 240;
+
+        function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+            let radians = (angleInDegrees) * Math.PI / 180.0;
+
+            return {
+                x: centerX + (radius * Math.cos(radians)),
+                y: centerY + (radius * Math.sin(radians))
+            };
+        }
+
+        
+
+        function updateVisualization() {
+            const start = parseFloat(startInput.value) || 0;
+            const end = parseFloat(endInput.value) || 100;
+            const current = parseFloat(slider.value);
+
+            const minVal = Math.min(start, end);
+            const maxVal = Math.max(start, end);
+            if (parseFloat(slider.min) !== minVal) slider.min = minVal;
+            if (parseFloat(slider.max) !== maxVal) slider.max = maxVal;
+
+            let percentage;
+            //Range + 20 perche' così al 100% la freccia rimane visibile. * (current / 100) è per adattarsi con il valore
+            // di fine in modo tale sia proporzionato se la fine è 100 o 5.
+            const range = (end + (17 * (current / 100))) - start;
+            if (range === 0) {
+                percentage = 1;
+            } else {
+                percentage = (current - (start)) / range;
+            }
+            const clampedPct = Math.max(0, Math.min(1, percentage));
+
+            const currentArcLength = MAX_ARC_LENGTH * (1 - clampedPct);
+
+            const currentStartAngle = ANGLE_END - currentArcLength;
+
+            const startPt = polarToCartesian(0, 0, RADIUS, currentStartAngle);
+            const endPt = polarToCartesian(0, 0, RADIUS, ANGLE_END);
+
+            const largeArc = (ANGLE_END - currentStartAngle) > 180 ? 1 : 0;
+
+            const d = `M ${startPt.x} ${startPt.y} A ${RADIUS} ${RADIUS} 0 ${largeArc} 1 ${endPt.x} ${endPt.y}`;
+
+            arrowStem.setAttribute('d', d);
+
+
+            const headPt = polarToCartesian(0, 0, RADIUS, ANGLE_END);
+
+            const headRot = ANGLE_END + 90;
+
+            arrowHead.setAttribute('transform', `translate(${headPt.x}, ${headPt.y}) rotate(${headRot})`);
+
+            valCurrentDisplay.textContent = current.toFixed(1);
+            const pctText = (clampedPct * 100).toFixed(0) + '%';
+            valPercentDisplay.textContent = pctText;
+            bgPercentage.textContent = pctText;
+
+            const sliderPct = ((current - minVal) / (maxVal - minVal)) * 100;
+            slider.style.background = `linear-gradient(to right, #007aff 0%, #007aff ${sliderPct}%, #e0e0e0 ${sliderPct}%, #e0e0e0 100%)`;
+        }
+
+        startInput.addEventListener('input', updateVisualization);
+        endInput.addEventListener('input', updateVisualization);
+        slider.addEventListener('input', updateVisualization);
+
+
+        updateVisualization();
+
+    </script>
+</body>
+
+</html>

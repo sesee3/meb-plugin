@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +22,7 @@
 
         .widget-container {
             width: 100%;
-            max-width: 450px;
+            max-width: 700px;
             padding: 30px;
             background: #ffffff;
             border-radius: 10px;
@@ -37,7 +38,7 @@
 
         .progress-circle-container {
             position: relative;
-            width: 220px;
+            width: 500px;
             height: 220px;
             margin: 20px auto;
         }
@@ -59,8 +60,8 @@
             stroke-width: 14;
             stroke-linecap: round;
             transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-            stroke-dasharray 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-            transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                stroke-dasharray 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             filter: drop-shadow(0 2px 4px rgba(0, 122, 255, 0.3));
         }
 
@@ -174,11 +175,11 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        input:checked + .toggle-slider {
+        input:checked+.toggle-slider {
             background-color: #007aff;
         }
 
-        input:checked + .toggle-slider:before {
+        input:checked+.toggle-slider:before {
             transform: translateX(26px);
         }
 
@@ -294,288 +295,294 @@
         }
     </style>
 </head>
+
 <body>
 
-<div class="widget-container">
-    <h2>Progress Circle</h2>
+    <div class="widget-container">
+        <h2>Progress Circle</h2>
 
-    <div class="progress-circle-container">
-        <svg class="progress-circle" viewBox="0 0 200 200">
+        <div class="progress-circle-container">
+            <svg class="progress-circle" viewBox="0 0 200 200">
 
-            <circle
-                    id="progress-circle-fill"
-                    class="progress-circle-fill"
-                    cx="100"
-                    cy="100"
-                    r="90">
-            </circle>
+                <circle id="progress-circle-fill" class="progress-circle-fill" cx="100" cy="100" r="90">
+                </circle>
 
-            <g id="elemento-svg" transform="rotate(70 0 0) translate(80 -150) scale(1)" fill="#007aff">
-                <path d="M36.5299 45.7049L1.75948 80.3705C0.492705 81.5658 0 83.1127 0 84.8004C0 88.3162 2.60419 91.0583 6.12344 91.0583C8.02389 91.0583 9.43165 90.3553 10.6281 89.23L48.8474 50.6972C50.3958 49.0098 51.0292 47.4629 51.0292 45.7049C51.0292 44.0174 50.2548 42.2597 48.8474 40.783L10.6281 1.96883C9.43165 0.773469 8.02389 -3.6458e-07 6.05309 -3.6458e-07C2.60419 -3.6458e-07 0 2.88294 0 6.3987C0 8.01594 0.492707 9.70352 1.68914 10.8989L36.5299 45.7049Z"
-                      fill="black" fill-opacity="0.85"/>
-            </g>
-        </svg>
+                <g id="elemento-svg" transform="rotate(70 0 0) translate(80 -150) scale(1)" fill="#007aff">
+                    <path
+                        d="M36.5299 45.7049L1.75948 80.3705C0.492705 81.5658 0 83.1127 0 84.8004C0 88.3162 2.60419 91.0583 6.12344 91.0583C8.02389 91.0583 9.43165 90.3553 10.6281 89.23L48.8474 50.6972C50.3958 49.0098 51.0292 47.4629 51.0292 45.7049C51.0292 44.0174 50.2548 42.2597 48.8474 40.783L10.6281 1.96883C9.43165 0.773469 8.02389 -3.6458e-07 6.05309 -3.6458e-07C2.60419 -3.6458e-07 0 2.88294 0 6.3987C0 8.01594 0.492707 9.70352 1.68914 10.8989L36.5299 45.7049Z"
+                        fill="black" fill-opacity="0.85" />
+                </g>
+            </svg>
 
 
-        <div class="progress-text" id="progress-text">0%</div>
+            <div class="progress-text" id="progress-text">0%</div>
 
-    </div>
-
-
-
-    <div class="controls-grid">
-        <div class="control-group">
-            <label for="start-angle">Inizio (gradi)</label>
-            <input
-                    type="number"
-                    id="start-angle"
-                    min="0"
-                    max="360"
-                    value="0"
-                    step="1">
-            <div class="info-badge">Punto di partenza</div>
         </div>
 
-        <div class="control-group">
-            <label for="max-angle">Limite (gradi)</label>
-            <input
-                    type="number"
-                    id="max-angle"
-                    min="1"
-                    max="360"
-                    value="40"
-                    step="1">
-            <div class="info-badge">Arco massimo</div>
-        </div>
-    </div>
 
-    <!-- Toggle per la direzione -->
-    <div class="toggle-container">
-        <span class="toggle-label">Direzione</span>
-        <div class="direction-indicator">
-            <span class="direction-arrow" id="direction-arrow">↻</span>
-            <span id="direction-text">Oraria</span>
-        </div>
-        <label class="toggle-switch">
-            <input type="checkbox" id="direction-toggle">
-            <span class="toggle-slider"></span>
-        </label>
-    </div>
 
-    <div class="slider-container">
-        <input
-                type="range"
-                id="mio-slider"
-                min="0"
-                max="100"
-                value="0"
-                step="0.5">
-        <div class="labels">
-            <span>0%</span>
-            <span>50%</span>
-            <span>100%</span>
-        </div>
-    </div>
-
-    <div class="stats">
-        <div class="stat-item">
-            <div class="stat-value" id="stat-degrees">0°</div>
-            <div class="stat-label">Progresso</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value" id="stat-arc">0°</div>
-            <div class="stat-label">Arco attuale</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value" id="stat-remaining">100%</div>
-            <div class="stat-label">Rimanente</div>
-        </div>
-    </div>
-
-    <div class="container" style="max-width:500px; background:white; padding:30px; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <h2>Controllo Trasformazioni Freccia</h2>
-        <div class="controls">
+        <div class="controls-grid">
             <div class="control-group">
-                <label for="rotate-input">Rotazione (°)</label>
-                <input type="number" id="rotate-input" value="70" step="1">
-                <div class="value-display" id="rotate-display">70°</div>
+                <label for="start-angle">Inizio (gradi)</label>
+                <input type="number" id="start-angle" min="0" max="360" value="0" step="1">
+                <div class="info-badge">Punto di partenza</div>
             </div>
 
             <div class="control-group">
-                <label for="rotate-x">Centro Rot. X</label>
-                <input type="number" id="rotate-x" value="0" step="1">
-                <div class="value-display" id="rotate-x-display">0</div>
-            </div>
-
-            <div class="control-group">
-                <label for="rotate-y">Centro Rot. Y</label>
-                <input type="number" id="rotate-y" value="0" step="1">
-                <div class="value-display" id="rotate-y-display">0</div>
-            </div>
-
-            <div class="control-group">
-                <label for="scale-input">Scala</label>
-                <input type="number" id="scale-input" value="1" step="0.1" min="0.1" max="5">
-                <div class="value-display" id="scale-display">1x</div>
-            </div>
-
-            <div class="control-group">
-                <label for="translate-x">Posizione X</label>
-                <input type="number" id="translate-x" value="80" step="1">
-                <div class="value-display" id="translate-x-display">80</div>
-            </div>
-
-            <div class="control-group">
-                <label for="translate-y">Posizione Y</label>
-                <input type="number" id="translate-y" value="-150" step="1">
-                <div class="value-display" id="translate-y-display">-150</div>
-            </div>
-
-            <div class="control-group full-width">
-                <label>Transform String</label>
-                <textarea id="transform-output" readonly></textarea>
+                <label for="max-angle">Limite (gradi)</label>
+                <input type="number" id="max-angle" min="1" max="360" value="40" step="1">
+                <div class="info-badge">Arco massimo</div>
             </div>
         </div>
+
+        <!-- Toggle per la direzione -->
+        <div class="toggle-container">
+            <span class="toggle-label">Direzione</span>
+            <div class="direction-indicator">
+                <span class="direction-arrow" id="direction-arrow">↻</span>
+                <span id="direction-text">Oraria</span>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="direction-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div class="slider-container">
+            <input type="range" id="mio-slider" min="0" max="100" value="0" step="0.5">
+            <div class="labels">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-degrees">0°</div>
+                <div class="stat-label">Progresso</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-arc">0°</div>
+                <div class="stat-label">Arco attuale</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-remaining">100%</div>
+                <div class="stat-label">Rimanente</div>
+            </div>
+        </div>
+
+        <div class="container"
+            style="max-width:500px; background:white; padding:30px; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+            <h2>Controllo Trasformazioni Freccia</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="rotate-input">Rotazione (°)</label>
+                    <input type="number" id="rotate-input" value="70" step="1">
+                    <div class="value-display" id="rotate-display">70°</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="rotate-x">Centro Rot. X</label>
+                    <input type="number" id="rotate-x" value="0" step="1">
+                    <div class="value-display" id="rotate-x-display">0</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="rotate-y">Centro Rot. Y</label>
+                    <input type="number" id="rotate-y" value="0" step="1">
+                    <div class="value-display" id="rotate-y-display">0</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="scale-input">Scala</label>
+                    <input type="number" id="scale-input" value="1" step="0.1" min="0.1" max="5">
+                    <div class="value-display" id="scale-display">1x</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="translate-x">Posizione X</label>
+                    <input type="number" id="translate-x" value="80" step="1">
+                    <div class="value-display" id="translate-x-display">80</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="translate-y">Posizione Y</label>
+                    <input type="number" id="translate-y" value="-150" step="1">
+                    <div class="value-display" id="translate-y-display">-150</div>
+                </div>
+
+                <div class="control-group full-width">
+                    <label>Transform String</label>
+                    <textarea id="transform-output" readonly></textarea>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-</div>
+    <script>
+        const slider = document.getElementById('mio-slider');
+        const progressCircle = document.getElementById('progress-circle-fill');
+        const progressText = document.getElementById('progress-text');
+        const startAngleInput = document.getElementById('start-angle');
+        const maxAngleInput = document.getElementById('max-angle');
+        const directionToggle = document.getElementById('direction-toggle');
+        const directionText = document.getElementById('direction-text');
+        const directionArrow = document.getElementById('direction-arrow');
+        const fineFreccia = document.getElementById('fine-freccia');
+        const statDegrees = document.getElementById('stat-degrees');
+        const statArc = document.getElementById('stat-arc');
+        const statRemaining = document.getElementById('stat-remaining');
 
-<script>
-    const slider = document.getElementById('mio-slider');
-    const progressCircle = document.getElementById('progress-circle-fill');
-    const progressText = document.getElementById('progress-text');
-    const startAngleInput = document.getElementById('start-angle');
-    const maxAngleInput = document.getElementById('max-angle');
-    const directionToggle = document.getElementById('direction-toggle');
-    const directionText = document.getElementById('direction-text');
-    const directionArrow = document.getElementById('direction-arrow');
-    const fineFreccia = document.getElementById('fine-freccia');
-    const statDegrees = document.getElementById('stat-degrees');
-    const statArc = document.getElementById('stat-arc');
-    const statRemaining = document.getElementById('stat-remaining');
+        // Calcoliamo la circonferenza del cerchio
+        const raggio = 90;
+        const circonferenza = 2 * Math.PI * raggio;
 
-    // Calcoliamo la circonferenza del cerchio
-    const raggio = 90;
-    const circonferenza = 2 * Math.PI * raggio;
+        function aggiornaProgresso() {
+            const valore = parseFloat(slider.value);
+            const startAngle = parseFloat(startAngleInput.value) || 0;
+            const maxAngle = parseFloat(maxAngleInput.value) || 40;
+            const isReverse = directionToggle.checked;
 
-    function aggiornaProgresso() {
-        const valore = parseFloat(slider.value);
-        const startAngle = parseFloat(startAngleInput.value) || 0;
-        const maxAngle = parseFloat(maxAngleInput.value) || 40;
-        const isReverse = directionToggle.checked;
+            // Calcoliamo l'angolo effettivo del progresso
+            const angoloProgressoEffettivo = (valore / 100) * maxAngle;
 
-        // Calcoliamo l'angolo effettivo del progresso
-        const angoloProgressoEffettivo = (valore / 100) * maxAngle;
+            // Calcoliamo la lunghezza dell'arco
+            const lunghezzaArcoAttuale = (angoloProgressoEffettivo / 360) * circonferenza;
 
-        // Calcoliamo la lunghezza dell'arco
-        const lunghezzaArcoAttuale = (angoloProgressoEffettivo / 360) * circonferenza;
+            // Impostiamo stroke-dasharray
+            progressCircle.style.strokeDasharray = `${lunghezzaArcoAttuale} ${circonferenza}`;
 
-        // Impostiamo stroke-dasharray
-        progressCircle.style.strokeDasharray = `${lunghezzaArcoAttuale} ${circonferenza}`;
+            // Calcoliamo la rotazione in base alla direzione
+            let rotazione;
+            let rotazioneFreccia;
 
-        // Calcoliamo la rotazione in base alla direzione
-        let rotazione;
-        let rotazioneFreccia;
+            if (isReverse) {
+                // Direzione antioraria
+                rotazione = startAngle - 90;
+                progressCircle.style.transform = `rotate(${rotazione}deg) scale(-1, 1)`;
+                // La freccia deve ruotare al contrario e compensare lo scale
+                rotazioneFreccia = -startAngle + 90;
 
-        if (isReverse) {
-            // Direzione antioraria
-            rotazione = startAngle - 90;
-            progressCircle.style.transform = `rotate(${rotazione}deg) scale(-1, 1)`;
-            // La freccia deve ruotare al contrario e compensare lo scale
-            rotazioneFreccia = -startAngle + 90;
-        } else {
-            // Direzione oraria
-            rotazione = startAngle - 90;
-            progressCircle.style.transform = `rotate(${rotazione}deg)`;
+            } else {
+                // Direzione oraria
+                rotazione = startAngle - 90;
+                progressCircle.style.transform = `rotate(${rotazione}deg)`;
 
-            rotazioneFreccia = startAngle - 90;
+                rotazioneFreccia = startAngle - 90;
+            }
+
+            progressCircle.style.transformOrigin = 'center';
+
+            // Ruotiamo la freccia per allinearla al punto iniziale
+            fineFreccia.style.transform = `rotate(${rotazioneFreccia}deg)`;
+            fineFreccia.style.transformOrigin = '100px 100px'; // Centro del cerchio
+
+            // Aggiorniamo il testo
+            progressText.textContent = valore.toFixed(1) + '%';
+
+            // Aggiorniamo le statistiche
+            statDegrees.textContent = angoloProgressoEffettivo.toFixed(1) + '°';
+            statArc.textContent = maxAngle + '°';
+            statRemaining.textContent = (100 - valore).toFixed(1) + '%';
+
+            // Aggiorniamo il colore dello slider
+            slider.style.background = `linear-gradient(to right, #007aff 0%, #007aff ${valore}%, #e0e0e0 ${valore}%, #e0e0e0 100%)`;
         }
 
-        progressCircle.style.transformOrigin = 'center';
-
-        // Ruotiamo la freccia per allinearla al punto iniziale
-        fineFreccia.style.transform = `rotate(${rotazioneFreccia}deg)`;
-        fineFreccia.style.transformOrigin = '100px 100px'; // Centro del cerchio
-
-        // Aggiorniamo il testo
-        progressText.textContent = valore.toFixed(1) + '%';
-
-        // Aggiorniamo le statistiche
-        statDegrees.textContent = angoloProgressoEffettivo.toFixed(1) + '°';
-        statArc.textContent = maxAngle + '°';
-        statRemaining.textContent = (100 - valore).toFixed(1) + '%';
-
-        // Aggiorniamo il colore dello slider
-        slider.style.background = `linear-gradient(to right, #007aff 0%, #007aff ${valore}%, #e0e0e0 ${valore}%, #e0e0e0 100%)`;
-    }
-
-    function aggiornaIndicatoreDirection() {
-        if (directionToggle.checked) {
-            directionText.textContent = 'Antioraria';
-            directionArrow.textContent = '↺';
-        } else {
-            directionText.textContent = 'Oraria';
-            directionArrow.textContent = '↻';
+        function aggiornaIndicatoreDirection() {
+            if (directionToggle.checked) {
+                directionText.textContent = 'Antioraria';
+                directionArrow.textContent = '↺';
+            } else {
+                directionText.textContent = 'Oraria';
+                directionArrow.textContent = '↻';
+            }
         }
-    }
 
-    // Event listeners
-    slider.addEventListener('input', aggiornaProgresso);
-    startAngleInput.addEventListener('input', aggiornaProgresso);
-    maxAngleInput.addEventListener('input', aggiornaProgresso);
-    directionToggle.addEventListener('change', () => {
+        // Event listeners
+        slider.addEventListener('input', aggiornaProgresso);
+        startAngleInput.addEventListener('input', aggiornaProgresso);
+        maxAngleInput.addEventListener('input', aggiornaProgresso);
+        directionToggle.addEventListener('change', () => {
+            aggiornaIndicatoreDirection();
+            aggiornaProgresso();
+        });
+
+        const elementoSvg = document.getElementById('elemento-svg');
+        const rotateInput = document.getElementById('rotate-input');
+        const rotateX = document.getElementById('rotate-x');
+        const rotateY = document.getElementById('rotate-y');
+        const scaleInput = document.getElementById('scale-input');
+        const translateX = document.getElementById('translate-x');
+        const translateY = document.getElementById('translate-y');
+        const transformOutput = document.getElementById('transform-output');
+
+        const rotateDisplay = document.getElementById('rotate-display');
+        const rotateXDisplay = document.getElementById('rotate-x-display');
+        const rotateYDisplay = document.getElementById('rotate-y-display');
+        const scaleDisplay = document.getElementById('scale-display');
+        const translateXDisplay = document.getElementById('translate-x-display');
+        const translateYDisplay = document.getElementById('translate-y-display');
+
+        function aggiornaTransform() {
+            const rotate = parseFloat(rotateInput.value) || 0;
+            const rotX = parseFloat(rotateX.value) || 0;
+            const rotY = parseFloat(rotateY.value) || 0;
+            const scale = parseFloat(scaleInput.value) || 1;
+            const transX = parseFloat(translateX.value) || 0;
+            const transY = parseFloat(translateY.value) || 0;
+
+            const transformString = `rotate(${rotate} ${rotX} ${rotY}) translate(${transX} ${transY}) scale(${scale})`;
+            elementoSvg.setAttribute('transform', transformString);
+
+            rotateDisplay.textContent = `${rotate}°`;
+            rotateXDisplay.textContent = rotX;
+            rotateYDisplay.textContent = rotY;
+            scaleDisplay.textContent = `${scale}x`;
+            translateXDisplay.textContent = transX;
+            translateYDisplay.textContent = transY;
+
+            transformOutput.value = transformString;
+        }
+
+        [rotateInput, rotateX, rotateY, scaleInput, translateX, translateY].forEach(el =>
+            el.addEventListener('input', aggiornaTransform)
+        );
+
+        aggiornaTransform();
+
+
+        // Inizializzazione
         aggiornaIndicatoreDirection();
         aggiornaProgresso();
-    });
 
-    const elementoSvg = document.getElementById('elemento-svg');
-    const rotateInput = document.getElementById('rotate-input');
-    const rotateX = document.getElementById('rotate-x');
-    const rotateY = document.getElementById('rotate-y');
-    const scaleInput = document.getElementById('scale-input');
-    const translateX = document.getElementById('translate-x');
-    const translateY = document.getElementById('translate-y');
-    const transformOutput = document.getElementById('transform-output');
+        // --- NEW PROGRESS CIRCLE LOGIC ---
+        const newSlider = document.getElementById('new-slider');
+        const newProgressCircle = document.getElementById('new-progress-circle-fill');
+        const newProgressText = document.getElementById('new-progress-text');
+        const newRaggio = 90;
+        const newCirconferenza = 2 * Math.PI * newRaggio;
 
-    const rotateDisplay = document.getElementById('rotate-display');
-    const rotateXDisplay = document.getElementById('rotate-x-display');
-    const rotateYDisplay = document.getElementById('rotate-y-display');
-    const scaleDisplay = document.getElementById('scale-display');
-    const translateXDisplay = document.getElementById('translate-x-display');
-    const translateYDisplay = document.getElementById('translate-y-display');
+        function aggiornaNuovoProgresso() {
+            const valore = parseFloat(newSlider.value);
+            const offset = newCirconferenza - (valore / 100) * newCirconferenza;
 
-    function aggiornaTransform() {
-        const rotate = parseFloat(rotateInput.value) || 0;
-        const rotX = parseFloat(rotateX.value) || 0;
-        const rotY = parseFloat(rotateY.value) || 0;
-        const scale = parseFloat(scaleInput.value) || 1;
-        const transX = parseFloat(translateX.value) || 0;
-        const transY = parseFloat(translateY.value) || 0;
+            newProgressCircle.style.strokeDasharray = `${newCirconferenza} ${newCirconferenza}`;
+            newProgressCircle.style.strokeDashoffset = offset;
 
-        const transformString = `rotate(${rotate} ${rotX} ${rotY}) translate(${transX} ${transY}) scale(${scale})`;
-        elementoSvg.setAttribute('transform', transformString);
+            newProgressText.textContent = valore.toFixed(0) + '%';
 
-        rotateDisplay.textContent = `${rotate}°`;
-        rotateXDisplay.textContent = rotX;
-        rotateYDisplay.textContent = rotY;
-        scaleDisplay.textContent = `${scale}x`;
-        translateXDisplay.textContent = transX;
-        translateYDisplay.textContent = transY;
+            // Update slider background
+            newSlider.style.background = `linear-gradient(to right, #007aff 0%, #007aff ${valore}%, #e0e0e0 ${valore}%, #e0e0e0 100%)`;
+        }
 
-        transformOutput.value = transformString;
-    }
-
-    [rotateInput, rotateX, rotateY, scaleInput, translateX, translateY].forEach(el =>
-        el.addEventListener('input', aggiornaTransform)
-    );
-
-    aggiornaTransform();
-
-
-    // Inizializzazione
-    aggiornaIndicatoreDirection();
-    aggiornaProgresso();
-</script>
+        newSlider.addEventListener('input', aggiornaNuovoProgresso);
+        // Initialize
+        aggiornaNuovoProgresso();
+    </script>
 
 </body>
+
 </html>

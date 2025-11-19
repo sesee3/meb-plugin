@@ -1,5 +1,6 @@
-<!DOCTYPE html>
+<!---<!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <title>Mappa Meteo SignalK</title>
@@ -8,17 +9,20 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
 
     <style>
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
         }
+
         #map {
             width: 100%;
             height: 100%;
             background-color: #e0e0e0;
         }
+
         .icon {
             width: 28px;
             height: 28px;
@@ -28,6 +32,7 @@
             justify-content: center;
             align-items: center;
         }
+
         #sidebar {
             position: absolute;
             top: 10px;
@@ -36,8 +41,9 @@
             background: rgba(255, 255, 255, 0.9);
             padding: 5px;
             border-radius: 4px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
         }
+
         #sidebar button {
             font-size: 14px;
             cursor: pointer;
@@ -47,6 +53,7 @@
             padding: 6px 12px;
             border-radius: 3px;
         }
+
         #sidebar button:hover {
             background: #005f7f;
         }
@@ -202,6 +209,210 @@
             }
         });
     </script>
+
+</body>
+
+</html>-->
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mappa Meteo SignalK - Direzione Onde</title>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+    #map {
+        width: 100%;
+        height: 100%;
+        background-color: #e0e0e0;
+    }
+    .icon {
+        width: 60px;
+        height: 60px;
+        transform-origin: center center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script>
+mapboxgl.accessToken =
+"pk.eyJ1Ijoic2VzZWUzIiwiYSI6ImNtZ2dydndkMDBsNjUya3NjeW91dW41MzcifQ.M2qxj0wL1W7plRzIataojQ";
+
+const defaultCenter = [9.19, 44.41];
+
+const map = new mapboxgl.Map({
+    container: "map",
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: defaultCenter,
+    zoom: 5
+});
+
+// ------------------------------------------
+// Funzione per calcolo punto finale del vettore
+// ------------------------------------------
+function destinationPoint([lon, lat], bearingDeg, distanceMeters) {
+    const R = 6371000;
+    const brng = bearingDeg * Math.PI / 180;
+    const d = distanceMeters;
+
+    const lat1 = lat * Math.PI / 180;
+    const lon1 = lon * Math.PI / 180;
+
+    const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(d / R) +
+        Math.cos(lat1) * Math.sin(d / R) * Math.cos(brng)
+    );
+
+    const lon2 = lon1 + Math.atan2(
+        Math.sin(brng) * Math.sin(d / R) * Math.cos(lat1),
+        Math.cos(d / R) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+    return [ lon2 * 180/Math.PI, lat2 * 180/Math.PI ];
+}
+
+// ------------------------------------------
+// LAYER - linea del vettore onde
+// ------------------------------------------
+map.on("load", () => {
+    map.addSource("waveVector", {
+        type: "geojson",
+        data: {
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: [defaultCenter, defaultCenter] }
+        }
+    });
+
+    map.addLayer({
+        id: "waveVectorLine",
+        type: "line",
+        source: "waveVector",
+        paint: { "line-color": "#0000ff", "line-width": 5 }
+    });
+
+    map.addLayer({
+        id: "waveLabelText",
+        type: "symbol",
+        source: "waveVector",
+        layout: {
+            "symbol-placement": "line",
+            "text-field": "Direzione onde",
+            "text-size": 26
+        },
+        paint: {
+            "text-color": "#0000ff",
+            "text-halo-color": "white",
+            "text-halo-width": 2
+        }
+    });
+});
+
+// ------------------------------------------
+// MARKER BARCA (ingrandita)
+// ------------------------------------------
+const boatEl = document.createElement("div");
+boatEl.className = "icon";
+boatEl.innerHTML = "⛵";
+boatEl.style.fontSize = "48px";
+
+const boatMarker = new mapboxgl.Marker({ element: boatEl })
+    .setLngLat(defaultCenter)
+    .addTo(map);
+
+// ------------------------------------------
+// MARKER FRECCIA SVG (ruotabile)
+// ------------------------------------------
+const arrowEl = document.createElement("div");
+arrowEl.className = "icon";
+
+arrowEl.innerHTML = `
+<svg width="60" height="60" viewBox="0 0 100 100">
+  <g id="arrowGroup" transform="rotate(0 50 50)">
+    <polygon points="50,0 90,100 50,75 10,100" fill="black" />
+  </g>
+</svg>
+`;
+
+const arrowMarker = new mapboxgl.Marker({ element: arrowEl })
+    .setLngLat(defaultCenter)
+    .addTo(map);
+
+// ------------------------------------------
+// Variabili aggiornate da SignalK
+// ------------------------------------------
+let position = null;
+let waveDir = null;
+
+// ------------------------------------------
+// Websocket verso SignalK
+// ------------------------------------------
+const ws = new WebSocket(`ws://${location.host}/signalk/v1/stream?subscribe=all`);
+
+ws.onmessage = msg => {
+    const data = JSON.parse(msg.data);
+    if (!data.updates) return;
+
+    data.updates.forEach(u => {
+        u.values?.forEach(v => {
+
+            if (v.path === "navigation.position")
+                position = [v.value.longitude, v.value.latitude];
+
+            if (v.path === "environment.wave.direction" ||
+                v.path === "meb.waves.direction")
+                waveDir = v.value;
+
+        });
+    });
+
+    updateMap();
+};
+
+// ------------------------------------------
+// Aggiorna mappa: vettore + freccia
+// ------------------------------------------
+function updateMap() {
+    if (!position || waveDir === null) return;
+
+    // posizione barca
+    boatMarker.setLngLat(position);
+
+    // punto finale vettore (1 km)
+    const endPoint = destinationPoint(position, waveDir, 1000);
+
+    // aggiorna linea blu
+    map.getSource("waveVector").setData({
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: [position, endPoint] }
+    });
+
+    // aggiorna posizione freccia
+    arrowMarker.setLngLat(endPoint);
+
+    // ROTAZIONE PERFETTA DELL'SVG
+    document.getElementById("arrowGroup")
+        .setAttribute("transform", `rotate(${waveDir} 50 50)`);
+
+    map.easeTo({ center: position });
+}
+
+</script>
 
 </body>
 </html>
