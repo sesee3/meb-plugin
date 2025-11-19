@@ -1,7 +1,6 @@
-
 const apiToken = "08a9a9828f8186c661d0293741fd01971bc2d2f4"
 
-export function aisStream() {
+function aisStream() {
 
     const socket = new WebSocket('wss://stream.aisstream.io/v0/stream');
     socket.onopen = function (_) {
@@ -29,3 +28,5 @@ export function aisStream() {
     socket.onerror = (error) => console.error('WebSocket Error:', error);
     socket.onclose = () => console.log('WebSocket Connection Closed');
 }
+
+module.exports = { aisStream };
