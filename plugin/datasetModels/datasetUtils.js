@@ -41,9 +41,9 @@ function write(filePath, initialData = {}) {
 }
 
 /**
- * Writes data to a JSON file.
- * @param {string} filePath - The absolute or relative path to the JSON file.
- * @param {object} data - The data to write.
+ * Scrive dati in un file JSON.
+ * @param {string} filePath - Il path assoluto o relativo al file JSON.
+ * @param {object} data - Gli elementi da aggiungere nel file JSON.
  */
 function update(filePath, data) {
     const absolutePath = path.resolve(filePath);
@@ -55,12 +55,12 @@ function update(filePath, data) {
 }
 
 /**
- * Adds an element to an array in a JSON file.
- * If the file doesn't exist, it creates it with an array containing the element.
- * If the file exists but is not an array, it throws an error.
- * @param {string} filePath - The absolute or relative path to the JSON file.
- * @param {any} element - The element to add to the array.
- * @returns {array} - The updated array.
+ * Aggiunge un elemento all'array del file specificato
+ * Se il file non esiste, lo crea con un array contenente l'elemento.
+ * Se il file esiste ma non è un array, genera un errore.
+ * @param {string} filePath - Il path del file JSON.
+ * @param {any} element - L'elemento da aggiungere all'array.
+ * @returns {array} - L'array aggiornato.
  */
 function appendTo(filePath, element) {
     const absolutePath = path.resolve(filePath);

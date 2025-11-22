@@ -125,6 +125,7 @@
             border-radius: 5px;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
             background: #e0e0e0;
             transition: background 0.3s ease;
         }
@@ -184,16 +185,13 @@
             z-index: 0;
         }
     </style>
+
 </head>
 
 <body>
 
     <div class="widget-container">
-        <h2>Helm Steering Control</h2>
-
-
-        <!---- Verso sinistra: style="scale: -1 1; rotate: 90;"-->
-        <!---- verso destra: style="scale: 1 1; rotate: 0;"-->
+        <h2>Helm Steering Control - Destra</h2>
 
         <div class="visualization-container" style="scale: 1 1; rotate: 0;">
             <div class=" percentage-display" id="bg-percentage">0%</div>
@@ -210,22 +208,22 @@
                     <g id="elemento-svg" transform="rotate(75 0 0) translate(-30 -115) scale(1)" fill="#007aff">
                         <path
                             d="M36.5299 45.7049L1.75948 80.3705C0.492705 81.5658 0 83.1127 0 84.8004C0 88.3162 2.60419 91.0583 6.12344 91.0583C8.02389 91.0583 9.43165 90.3553 10.6281 89.23L48.8474 50.6972C50.3958 49.0098 51.0292 47.4629 51.0292 45.7049C51.0292 44.0174 50.2548 42.2597 48.8474 40.783L10.6281 1.96883C9.43165 0.773469 8.02389 -3.6458e-07 6.05309 -3.6458e-07C2.60419 -3.6458e-07 0 2.88294 0 6.3987C0 8.01594 0.492707 9.70352 1.68914 10.8989L36.5299 45.7049Z"
-                            fill="#007aff"/>
+                            fill="#007aff" />
                     </g>
                 </g>
             </svg>
         </div>
 
         <div class=" controls-grid">
-                            <div class="control-group">
-                                <label for="start-val">Valore Inizio</label>
-                                <input type="number" id="start-val" value="0" step="1">
-                            </div>
+            <div class="control-group">
+                <label for="start-val">Valore Inizio</label>
+                <input type="number" id="start-val" value="0" step="1">
+            </div>
 
-                            <div class="control-group">
-                                <label for="end-val">Valore Fine</label>
-                                <input type="number" id="end-val" value="100" step="1">
-                            </div>
+            <div class="control-group">
+                <label for="end-val">Valore Fine</label>
+                <input type="number" id="end-val" value="100" step="1">
+            </div>
         </div>
 
         <div class="slider-container">
@@ -273,7 +271,7 @@
             };
         }
 
-        
+
 
         function updateVisualization() {
             const start = parseFloat(startInput.value) || 0;

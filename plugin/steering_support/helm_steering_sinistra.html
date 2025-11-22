@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helm Steering UI</title>
+
+    <link rel="stylesheet" href="/plugin/public/css/helm_suggestions.css">
+
+</head>
+
+<body>
+
+    <div class="widget-container">
+        <h2>Helm Steering Control - Sinistra</h2>
+
+        <div class="visualization-container" style="scale: -1 1; rotate: 90;">
+            <div class=" percentage-display" id="bg-percentage">0%</div>
+            <svg class="arrow-svg" viewBox="0 0 200 200">
+                <defs>
+                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.2" />
+                    </filter>
+                </defs>
+
+                <g transform="translate(100, 100)">
+                    <path id="arrow-stem" class="arrow-stem" />
+
+                    <g id="elemento-svg" transform="rotate(75 0 0) translate(-30 -115) scale(1)" fill="#007aff">
+                        <path
+                            d="M36.5299 45.7049L1.75948 80.3705C0.492705 81.5658 0 83.1127 0 84.8004C0 88.3162 2.60419 91.0583 6.12344 91.0583C8.02389 91.0583 9.43165 90.3553 10.6281 89.23L48.8474 50.6972C50.3958 49.0098 51.0292 47.4629 51.0292 45.7049C51.0292 44.0174 50.2548 42.2597 48.8474 40.783L10.6281 1.96883C9.43165 0.773469 8.02389 -3.6458e-07 6.05309 -3.6458e-07C2.60419 -3.6458e-07 0 2.88294 0 6.3987C0 8.01594 0.492707 9.70352 1.68914 10.8989L36.5299 45.7049Z"
+                            fill="#007aff"/>
+                    </g>
+                </g>
+            </svg>
+        </div>
+
+        <div class=" controls-grid">
+                            <div class="control-group">
+                                <label for="start-val">Valore Inizio</label>
+                                <input type="number" id="start-val" value="0" step="1">
+                            </div>
+
+                            <div class="control-group">
+                                <label for="end-val">Valore Fine</label>
+                                <input type="number" id="end-val" value="100" step="1">
+                            </div>
+        </div>
+
+        <div class="slider-container">
+            <input type="range" id="main-slider" min="0" max="100" value="0" step="1">
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="val-current">0</div>
+                <div class="stat-label">Valore Attuale</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="val-percent">0%</div>
+                <div class="stat-label">Progresso</div>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <script>
+        const startInput = document.getElementById('start-val');
+        const endInput = document.getElementById('end-val');
+        const slider = document.getElementById('main-slider');
+
+        const valCurrentDisplay = document.getElementById('val-current');
+        const valPercentDisplay = document.getElementById('val-percent');
+        const bgPercentage = document.getElementById('bg-percentage');
+
+        const arrowStem = document.getElementById('arrow-stem');
+        const arrowHead = document.getElementById('arrow-head');
+
+        const RADIUS = 70;
+        const HEAD_ANGLE = 30;
+        const ANGLE_END = 30;
+        const MAX_ARC_LENGTH = 240;
+
+        function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+            let radians = (angleInDegrees) * Math.PI / 180.0;
+
+            return {
+                x: centerX + (radius * Math.cos(radians)),
+                y: centerY + (radius * Math.sin(radians))
+            };
+        }
+
+        
+
+        function updateVisualization() {
+            const start = parseFloat(startInput.value) || 0;
+            const end = parseFloat(endInput.value) || 100;
+            const current = parseFloat(slider.value);
+
+            const minVal = Math.min(start, end);
+            const maxVal = Math.max(start, end);
+            if (parseFloat(slider.min) !== minVal) slider.min = minVal;
+            if (parseFloat(slider.max) !== maxVal) slider.max = maxVal;
+
+            let percentage;
+            //Range + 20 perche' così al 100% la freccia rimane visibile. * (current / 100) è per adattarsi con il valore
+            // di fine in modo tale sia proporzionato se la fine è 100 o 5.
+            const range = (end + (17 * (current / 100))) - start;
+            if (range === 0) {
+                percentage = 1;
+            } else {
+                percentage = (current - (start)) / range;
+            }
+            const clampedPct = Math.max(0, Math.min(1, percentage));
+
+            const currentArcLength = MAX_ARC_LENGTH * (1 - clampedPct);
+
+            const currentStartAngle = ANGLE_END - currentArcLength;
+
+            const startPt = polarToCartesian(0, 0, RADIUS, currentStartAngle);
+            const endPt = polarToCartesian(0, 0, RADIUS, ANGLE_END);
+
+            const largeArc = (ANGLE_END - currentStartAngle) > 180 ? 1 : 0;
+
+            const d = `M ${startPt.x} ${startPt.y} A ${RADIUS} ${RADIUS} 0 ${largeArc} 1 ${endPt.x} ${endPt.y}`;
+
+            arrowStem.setAttribute('d', d);
+
+
+            const headPt = polarToCartesian(0, 0, RADIUS, ANGLE_END);
+
+            const headRot = ANGLE_END + 90;
+
+            arrowHead.setAttribute('transform', `translate(${headPt.x}, ${headPt.y}) rotate(${headRot})`);
+
+            valCurrentDisplay.textContent = current.toFixed(1);
+            const pctText = (clampedPct * 100).toFixed(0) + '%';
+            valPercentDisplay.textContent = pctText;
+            bgPercentage.textContent = pctText;
+
+            const sliderPct = ((current - minVal) / (maxVal - minVal)) * 100;
+            slider.style.background = `linear-gradient(to right, #007aff 0%, #007aff ${sliderPct}%, #e0e0e0 ${sliderPct}%, #e0e0e0 100%)`;
+        }
+
+        startInput.addEventListener('input', updateVisualization);
+        endInput.addEventListener('input', updateVisualization);
+        slider.addEventListener('input', updateVisualization);
+
+
+        updateVisualization();
+
+    </script>
+</body>
+
+</html>

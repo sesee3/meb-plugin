@@ -3,12 +3,14 @@ const { publish } = require("./publisher.js");
 const { setupRoutes, getOpenApiSpec } = require("./routes.js");
 
 const { getStormGlassWeather } = require("./stormglass.js");
-const {getAppleWeatherForecast} = require("./weatherkit");
+const { getAppleWeatherForecast } = require("./weatherkit");
 const { aisStream } = require("./aisstream.js")
 const mapHandler = require("./map.handler.js");
+const { linkBot } = require("./telegram.core.js");
 
+const dataset = require("./datasetModels/datasetCore.js");
 const fs = require("fs");
-const path = require("path");
+let datasetTimer = null;
 
 module.exports = function (app) {
     let weatherKitTimer = null;
@@ -30,73 +32,84 @@ module.exports = function (app) {
                 throw error;
             }
 
+            // BOT TELEGRAM
+            try {
+                await linkBot(app);
+                console.log("✅ Telegram bot in ascolto dei messaggi");
+            } catch (err) {
+                console.error("❌ Errore avvio Telegram bot:", err.message);
+            }
+
+            //WEATHER
             const weatherKitInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
             const stormGlassInterval = 3600; // 1 ora in secondi
 
             let location = null;
 
-            const updateWeatherKit = async () => {
-                if (!location || !location.latitude || !location.longitude) {
-                    console.error("Posizione non disponibile per WeatherKit, uso lat/lon dal pannello impostazioni");
-                    location = {
-                        latitude: Number(settings?.latitude),
-                        longitude: Number(settings?.longitude),
-                    };
-                }
+            console.log("Aggiornamento meteo")
+            // const updateWeatherKit = async () => {
+            //     if (!location || !location.latitude || !location.longitude) {
+            //         console.error("Posizione non disponibile per WeatherKit, uso lat/lon dal pannello impostazioni");
+            //         location = {
+            //             latitude: Number(settings?.latitude),
+            //             longitude: Number(settings?.longitude),
+            //         };
+            //     }
 
-                try {
-                    const weatherKitData = await getAppleWeatherForecast(location);
+            //     try {
+            //         const weatherKitData = await getAppleWeatherForecast(location);
 
-                    const weatherData = {
-                        temperature: weatherKitData.temperature,
-                        pressure: weatherKitData.pressure,
-                        rain: weatherKitData.rain,
-                        appleWindSpeed: weatherKitData.windSpeed,
-                        appleWindDirection: weatherKitData.windDirection,
-                    };
+            //         const weatherData = {
+            //             temperature: weatherKitData.temperature,
+            //             pressure: weatherKitData.pressure,
+            //             rain: weatherKitData.rain,
+            //             appleWindSpeed: weatherKitData.windSpeed,
+            //             appleWindDirection: weatherKitData.windDirection,
+            //         };
 
-                    publish(app, weatherData, settings);
-                    console.log("✅ WeatherKit aggiornato con successo");
+            //         publish(app, weatherData, settings);
+            //         console.log("✅ WeatherKit aggiornato con successo");
 
-                } catch (error) {
-                    console.error("❌ WEATHERKIT UPDATE FAIL:", error.message);
-                    console.error(error.stack);
-                }
-            };
+            //     } catch (error) {
+            //         console.error("❌ WEATHERKIT UPDATE FAIL:", error.message);
+            //         console.error(error.stack);
+            //     }
+            // };
 
-            const updateStormGlass = async () => {
-                if (!location || !location.latitude || !location.longitude) {
-                    console.error("Posizione non disponibile per StormGlass, uso lat/lon dal pannello impostazioni");
-                    location = {
-                        latitude: Number(settings?.latitude),
-                        longitude: Number(settings?.longitude),
-                    };
-                }
+            // const updateStormGlass = async () => {
+            //     if (!location || !location.latitude || !location.longitude) {
+            //         console.error("Posizione non disponibile per StormGlass, uso lat/lon dal pannello impostazioni");
+            //         location = {
+            //             latitude: Number(settings?.latitude),
+            //             longitude: Number(settings?.longitude),
+            //         };
+            //     }
 
-                try {
-                    const sgData = await getStormGlassWeather(location);
+            //     try {
+            //         const sgData = await getStormGlassWeather(location);
 
-                    if (!sgData || !sgData.swell) {
-                        console.error("⚠️ Dati StormGlass non validi:", sgData);
-                        return;
-                    }
+            //         if (!sgData || !sgData.swell) {
+            //             console.error("⚠️ Dati StormGlass non validi:", sgData);
+            //             return;
+            //         }
 
-                    const weatherData = {
-                        swell: sgData.swell,
-                        currents: sgData.currents,
-                        wind: sgData.wind,
-                        waves: sgData.waves,
-                    };
+            //         const weatherData = {
+            //             swell: sgData.swell,
+            //             currents: sgData.currents,
+            //             wind: sgData.wind,
+            //             waves: sgData.waves,
+            //         };
 
-                    publish(app, weatherData, settings);
-                    console.log("✅ StormGlass aggiornato con successo");
+            //         publish(app, weatherData, settings);
+            //         console.log("✅ StormGlass aggiornato con successo");
 
-                } catch (error) {
-                    console.error("❌ STORMGLASS UPDATE FAIL:", error.message);
-                    console.error(error.stack);
-                }
-            };
+            //     } catch (error) {
+            //         console.error("❌ STORMGLASS UPDATE FAIL:", error.message);
+            //         console.error(error.stack);
+            //     }
+            // };
 
+            //WEB SOCKET AIS
             aisStream();
 
             // Ascolta aggiornamenti sulla posizione
@@ -108,22 +121,36 @@ module.exports = function (app) {
                     settings.latitude = pos.latitude;
                     settings.longitude = pos.longitude;
 
+                    console.log("Aggiornamento meteo");
                     // Avvia WeatherKit se non è già attivo
-                    if (!weatherKitTimer) {
-                        updateWeatherKit();
-                        weatherKitTimer = setInterval(updateWeatherKit, weatherKitInterval * 1000);
-                    }
+                    // if (!weatherKitTimer) {
+                    //     updateWeatherKit();
+                    //     weatherKitTimer = setInterval(updateWeatherKit, weatherKitInterval * 1000);
+                    // }
 
-                    // Avvia StormGlass se non è già attivo
-                    if (!stormGlassTimer) {
-                        updateStormGlass();
-                        stormGlassTimer = setInterval(updateStormGlass, stormGlassInterval * 1000);
-                    }
+                    // // Avvia StormGlass se non è già attivo
+                    // if (!stormGlassTimer) {
+                    //     updateStormGlass();
+                    //     stormGlassTimer = setInterval(updateStormGlass, stormGlassInterval * 1000);
+                    // }
+
                 }
             });
 
+
             mapHandler(app, settings);
 
+            //REGISTRAZIONE DATI
+            const datasetStreamer = fs.createWriteStream('./dataset.csv', { flags: 'a' });
+            const headers = ['latitude,longitude,speedOverGround,courseOverGround'];
+            dataset.datasetInit(headers, datasetStreamer);
+
+            datasetTimer = setInterval(() => {
+                const now = new Date().toLocaleString();
+                
+            });
+
+            
         },
 
         stop: async () => {
@@ -184,35 +211,11 @@ module.exports = function (app) {
 
 
         }),
-
-        registerWithRouter: (router) => {
-            // mantiene le route esistenti
-            setupRoutes(router, lastCallRef);
-
-            // Endpoint API JSON che restituisce tutti gli hours salvati dall'ultima chiamata a StormGlass
-            router.get('/signalk/meb/waterPredictions/data', async (req, res) => {
-                try {
-                    // richiede i dati più recenti salvati in locale (se disponibili) oppure chiede all'API
-                    const hours = await getStormGlassAllHours();
-                    res.json({ success: true, hours });
-                } catch (err) {
-                    console.error('ERROR /signalk/meb/waterPredictions/data', err);
-                    res.status(500).json({ success: false, error: err.message });
-                }
-            });
-
-            // Pagina HTML con grafico e toggle tema
-            router.get('/signalk/meb/waterPredictions', (req, res) => {
-                const html = "";
-
-                res.setHeader('Content-Type', 'text/html; charset=utf-8');
-                res.send(html);
-            });
-        },
-
+        //Registra i route, tipo /ping o altri.
+        registerWithRouter: (router) => { setupRoutes(router, lastCallRef); },
         getOpenApi: getOpenApiSpec,
     };
 
-
     return plugin;
 };
+

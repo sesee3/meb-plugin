@@ -1,5 +1,4 @@
 const apiToken = "08a9a9828f8186c661d0293741fd01971bc2d2f4"
-const WebSocket = require('ws');
 
 function aisStream() {
 
