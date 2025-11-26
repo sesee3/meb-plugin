@@ -8,17 +8,21 @@ function setupRoutes(router, lastCallRef, app) {
         }
     });
 
-    // Semplice pagina HTML su /meb/suggestion che mostra "ciao"
-    router.get("/meb/suggestion", (req, res) => {
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.send("<!DOCTYPE html><html><head><title>MEB Suggestion</title></head><body><h1>ciao</h1></body></html>");
-    });
-
-    router.get("/meb/helm_steering_destro", (req, res) => {
-         try {
+    router.get("/helm_steering_destro", (req, res) => {
+        try {
             res.status(200).sendFile(__dirname + "/steering_support/helm_steering_destro.html");
         } catch (e) {
             res.status(500).json({ error: e.message });
+        }
+    });
+
+    router.get("/tools", (req, res) => {
+        try {
+            const path = require("path");
+            const filePath = path.join(__dirname, "..", "public", "decrypt_tool.html");
+            res.status(200).sendFile(filePath);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
         }
     });
 

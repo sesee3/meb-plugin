@@ -1,4 +1,4 @@
-const { validateConfig } = require("./config.js");
+const { config, validateConfig } = require("./config.js");
 const { setupRoutes, getOpenApiSpec } = require("./tools/routes.js");
 const { getStormGlassWeather } = require("./api_models/stormglass.js");
 const { getAppleWeatherForecast } = require("./api_models/weatherkit.js");
@@ -7,15 +7,17 @@ const mapHandler = require("./tools/map.handler.js");
 const { linkBot, send } = require("./bot/telegram.core.js");
 const dataset = require("./datasetModels/datasetCore.js");
 const dataUtils = require("./datasetModels/datasetUtils.js");
-const crypt = require("./tools/crypt.js");
+const { generateToken, encryptLog, loadSecureFile, saveSecureFile } = require("./tools/crypt.js");
 const fs = require("fs");
 const path = require("path");
 
-const CONFIG = {
-    log_interval: 2000,  // 2 secondi (frequenza di salvataggio dei dati)
-    number_value_fallback: 999999999999, // Sentinel value for missing numeric data
-    value_fallback: "no_value"   // Sentinel value for missing string data
-};
+const {publish} = require("./tools/publisher.js");
+
+const CONFIG = Object.freeze({
+    log_interval: 2000,
+    number_value_fallback: 999999999999,
+    value_fallback: "no_value"
+});
 
 const CSV_HEADERS = Object.freeze([
     'timestamp',
@@ -49,7 +51,8 @@ const state = {
     logStreamer: null,
     logsCount: 0,
     isRecordingLogs: false,
-    logsReferencesFile: null,
+    currentLogFile: null,
+    currentLogKey: null, // Chiave generata all'inizio, usata alla fine
     weatherKitTimer: null,
     stormGlassTimer: null,
     unsubPos: null,
@@ -58,6 +61,7 @@ const state = {
 };
 
 const logsDirectory = dataUtils.getDirectory(__dirname + '/datasetModels/saved_datas');
+const logsReferencesFile = path.join(__dirname, 'datasetModels/logs_references.json');
 const lastCallRef = { current: null };
 
 
@@ -122,14 +126,14 @@ const clearIntervalSafe = (timerId) => {
 const collectSensorData = (settings = {}) => {
     return {
         timestamp: new Date().toISOString(),
-        wavesHeight: getSKValue("environment.outside.waves.height"),
-        wavesPeriod: getSKValue("environment.outside.waves.period"),
-        wavesDirection: getSKValue("environment.outside.waves.direction"),
-        windSpeed: getSKValue("environment.wind.speedTrue"),
-        windDirection: getSKValue("environment.wind.directionTrue"),
-        temperature: getSKValue("environment.outside.temperature"),
-        currentSpeed: getSKValue("environment.current.drift"),
-        currentDirection: getSKValue("environment.current.setTrue"),
+        wavesHeight: getSKValue("meb.waves.height"),
+        wavesPeriod: getSKValue("meb.waves.period"),
+        wavesDirection: getSKValue("meb.waves.direction"),
+        windSpeed: getSKValue("meb.appleWindSpeed"),
+        windDirection: getSKValue("meb.appleWindDirection"),
+        temperature: getSKValue("meb.temperature"),
+        currentSpeed: getSKValue("meb.currents.speed"),
+        currentDirection: getSKValue("meb.currents.direction"),
         speedOverGround: getSKValue("navigation.speedOverGround"),
         courseOverGround: getSKValue("navigation.courseOverGroundTrue"),
         headingTrue: getSKValue("navigation.headingTrue"),
@@ -156,7 +160,8 @@ const collectSensorData = (settings = {}) => {
 function createNewFiles() {
     try {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const logFile = `${logsDirectory}/log_${timestamp}.csv`;
+        const logFileName = `log_${timestamp}.csv`;
+        const logFile = path.join(logsDirectory, logFileName);
 
         // Close existing stream gracefully
         if (state.logStreamer && !state.logStreamer.destroyed) {
@@ -165,7 +170,6 @@ function createNewFiles() {
 
         state.logStreamer = fs.createWriteStream(logFile, { flags: 'a' });
         
-        // Handle stream errors
         state.logStreamer.on('error', (err) => {
             console.error('[log_file] Errore nello stream:', err);
         });
@@ -173,7 +177,9 @@ function createNewFiles() {
         dataset.datasetInit(CSV_HEADERS, state.logStreamer);
         state.logsCount = 0;
 
-        state.logsReferencesFile = `log_${timestamp}.csv`;
+        // Genera la chiave ORA e salvala nello stato - sarà usata in stopRecording
+        state.currentLogFile = logFileName;
+        state.currentLogKey = generateToken();
         
         return true;
     } catch (error) {
@@ -201,19 +207,28 @@ function stopRecording() {
         }
 
         state.isRecordingLogs = false;
+
+        // Usa la chiave generata all'inizio della sessione
+        if (state.currentLogFile && state.currentLogKey) {
+            const logFilePath = path.join(logsDirectory, state.currentLogFile);
+            
+            // Carica, aggiorna e salva references criptate
+            const logsData = loadSecureFile(logsReferencesFile, { references: [] });
+            logsData.references.push({
+                name: state.currentLogFile,
+                token: state.currentLogKey
+            });
+            saveSecureFile(logsReferencesFile, logsData);
+
+            // Cripta il file log con la stessa chiave
+            encryptLog(logFilePath, state.currentLogKey);
+            
+            console.log(`[stopRecording] Log ${state.currentLogFile} criptato e salvato.`);
+        }
+
         state.logsCount = 0;
-
-        const logs_references_file = path.join(__dirname, 'datasetModels/logs_references.json'); 
-        
-        const key = crypt.generateToken();
-        console.log(key);
-
-        dataUtils.appendToElement(logs_references_file, 'references', {
-            name: state.logsReferencesFile,
-            token: key
-        });
-
-        crypt.encryptLog(path.join(__dirname, 'datasetModels', 'saved_datas', state.logsReferencesFile), key);
+        state.currentLogFile = null;
+        state.currentLogKey = null;
         
         return true;
     } catch (error) {
@@ -293,14 +308,19 @@ module.exports = function (app) {
 
         start: async (settings) => {
             try {
+                // Valida configurazione ma non bloccare il plugin se mancano chiavi opzionali
                 validateConfig();
 
                 // ==================== BOT TELEGRAM ====================
-                try {
-                    await linkBot(app);
-                    await send("Il computer di bordo è di nuovo attivo e disponibile.");
-                } catch (error) {
-                    console.error('[ERROR] Errore nell\' avvio del bot telegram', error)
+                if (config.telegramBotToken) {
+                    try {
+                        await linkBot(app);
+                        await send("Il computer di bordo è di nuovo attivo e disponibile.");
+                    } catch (error) {
+                        console.error('[ERROR] Errore nell\' avvio del bot telegram', error)
+                    }
+                } else {
+                    console.warn('[MEB TELEGRAM] Bot disabilitato: TELEGRAM_BOT_TOKEN non configurato.');
                 }
 
                 // ==================== WEB SOCKET AISSTREAM ====================
@@ -309,6 +329,83 @@ module.exports = function (app) {
                 } catch (error) {
                     console.error('[ERROR] Errore in AISStream:', error);
                 }
+
+                // ==================== WEATHER UPDATES ====================
+                // WEATHER
+const weatherKitInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
+const stormGlassInterval = 3600; // 1 ora in secondi
+
+let location = null;
+
+const updateWeatherKit = async () => {
+    if (!location || !location.latitude || !location.longitude) {
+        console.error("Posizione non disponibile per WeatherKit, uso lat/lon dal pannello impostazioni");
+        location = {
+            latitude: 38.1137,
+            longitude: 15.3315,
+        };
+    }
+
+    try {
+        const weatherKitData = await getAppleWeatherForecast(location);
+
+        const weatherData = {
+            temperature: weatherKitData.temperature,
+            pressure: weatherKitData.pressure,
+            rain: weatherKitData.rain,
+            appleWindSpeed: weatherKitData.windSpeed,
+            appleWindDirection: weatherKitData.windDirection,
+        };
+
+        publish(app, weatherData, settings);
+        console.log("✅ WeatherKit aggiornato con successo");
+
+    } catch (error) {
+        console.error("❌ WEATHERKIT UPDATE FAIL:", error.message);
+        console.error(error.stack);
+    }
+};
+
+const updateStormGlass = async () => {
+    if (!location || !location.latitude || !location.longitude) {
+        console.error("Posizione non disponibile per StormGlass, uso lat/lon dal pannello impostazioni");
+        location = {
+            latitude: Number(settings?.latitude),
+            longitude: Number(settings?.longitude),
+        };
+    }
+
+    try {
+        const sgData = await getStormGlassWeather(location);
+
+        if (!sgData || !sgData.swell) {
+            console.error("⚠️ Dati StormGlass non validi:", sgData);
+            return;
+        }
+
+        const weatherData = {
+            swell: sgData.swell,
+            currents: sgData.currents,
+            wind: sgData.wind,
+            waves: sgData.waves,
+        };
+
+        publish(app, weatherData, settings);
+        console.log("✅ StormGlass aggiornato con successo");
+
+    } catch (error) {
+        console.error("❌ STORMGLASS UPDATE FAIL:", error.message);
+        console.error(error.stack);
+    }
+};
+
+// chiamata immediata
+updateWeatherKit();
+updateStormGlass();
+
+// timer periodici (ms)
+state.weatherKitTimer = setInterval(updateWeatherKit, weatherKitInterval * 1000);
+state.stormGlassTimer = setInterval(updateStormGlass, stormGlassInterval * 1000);
 
                 // ==================== MAPPA INTERATTIVA ====================
                 try {
@@ -379,6 +476,7 @@ module.exports = function (app) {
                     }
                 }
 
+                // stopRecording gestisce già criptazione e salvataggio reference
                 if (app.datasetControl) {
                     try {
                         app.datasetControl.stop();
@@ -388,6 +486,7 @@ module.exports = function (app) {
                 }
 
                 await closeStream(state.logStreamer);
+                console.log('[stop] Plugin arrestato correttamente.');
 
             } catch (error) {
                 console.error('[ERROR] Errore durante l\'arresto del plugin:', error);

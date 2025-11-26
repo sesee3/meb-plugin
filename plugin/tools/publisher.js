@@ -1,5 +1,5 @@
-const { getAppleWeatherForecast } = require("./weatherkit.js");
-const { getStormGlassForecasts } = require("./stormglass.js");
+const { getAppleWeatherForecast } = require("../api_models/weatherkit.js");
+const { getStormGlassForecasts } = require("../api_models/stormglass.js");
 
 function generateValues(data, prefix = "meb") {
     const values = [];

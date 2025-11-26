@@ -1,33 +1,53 @@
 const fs = require("fs");
 const path = require("path");
-const { encrypt, decrypt, generateToken, encryptLog, decryptLog } = require("../tools/crypt");
+const { 
+    encrypt, 
+    decrypt, 
+    generateToken, 
+    encryptLog, 
+    decryptLog,
+    loadSecureFile,
+    saveSecureFile 
+} = require("../tools/crypt");
 
 const TelegramBot = require('node-telegram-bot-api');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+let bot = null;
+
+if (token) {
+    bot = new TelegramBot(token, { polling: true });
+} else {
+    console.warn("[MEB TELEGRAM] TELEGRAM_BOT_TOKEN non impostato: bot disabilitato.");
+}
 
 const telegram_users_file = path.join(__dirname, "..", "telegram_users.json");
+const logs_references_file = path.join(__dirname, "..", "datasetModels/logs_references.json");
 
 const filesPerPage = 8;
 
 let app = null;
 
-const livePositionIntervals = new Map(); // Mappa per tracciare gli intervalli di aggiornamento della posizione
+const livePositionIntervals = new Map();
+const userCommands = new Map();
+const keyExprirationTimers = new Map();
 
-const userCommands = new Map(); //Una mappa dei comandi che l'utente esegue
+// ==================== GESTIONE FILE SENSIBILI ====================
 
 function loadUsers() {
-    if (!fs.existsSync(telegram_users_file)) {
-        return [];
-    }
-    const data = fs.readFileSync(telegram_users_file);
-    return decrypt(data);
+    return loadSecureFile(telegram_users_file, []);
 }
 
 function saveUsers(users) {
-    const buffer = encrypt(users);
-    fs.writeFileSync(telegram_users_file, buffer);
+    saveSecureFile(telegram_users_file, users);
+}
+
+function loadLogsReferences() {
+    return loadSecureFile(logs_references_file, { references: [] });
+}
+
+function saveLogsReferences(data) {
+    saveSecureFile(logs_references_file, data);
 }
 
 function login(token, chatID) {
@@ -63,6 +83,10 @@ function getUserWith(token) {
 
 async function linkBot(appInstance) {
     app = appInstance;
+    if (!bot) {
+        console.warn("[MEB TELEGRAM] linkBot chiamato senza TOKEN: ritorno null.");
+        return null;
+    }
     return bot;
 }
 
@@ -70,11 +94,16 @@ function fetchFiles(chatId, page = 0) {
     const logDirectory = path.join(__dirname, "..", "datasetModels/saved_datas");
 
     try {
+        // Carica riferimenti criptati per filtrare solo file registrati
+        const logsData = loadLogsReferences();
+        const registeredFiles = new Set((logsData.references || []).map(r => r.name));
+
         const items = fs.readdirSync(logDirectory);
 
+        // Filtra: solo file registrati in logs_references.json
         const files = items.filter(item => {
             const fullPath = path.join(logDirectory, item);
-            return fs.statSync(fullPath).isFile();
+            return fs.statSync(fullPath).isFile() && registeredFiles.has(item);
         });
 
         if (files.length === 0) {
@@ -528,22 +557,15 @@ const other_commands = [
 
 let parametersMenu = {
     inline_keyboard: [
-        // [
-        //     { text: "📊 Visualizza il grafico fino ad ora", callback_data: "graph_position" }
-        // ],
         [
             { text: "🔌🚫 Termina ricezione", callback_data: "dismiss_and_unsubscribe" }
         ]
     ]
 }
 
-const dataUtils = require("../datasetModels/datasetUtils.js");
-
 bot.on('callback_query', (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
-
-    const commands = userCommands.get(chatId) || [];
 
     // Gestione download file con countdown
     if (data.startsWith('download_')) {
@@ -555,20 +577,20 @@ bot.on('callback_query', (query) => {
 
         try {
             if (!fs.existsSync(filePath)) {
-                bot.sendMessage(chatId, `File non trovato: ${fileName}`);
+                bot.sendMessage(chatId, `❌ File non trovato: ${fileName}`);
                 return;
             }
-            
 
-            let decryptionKey = null
-            const fileReference = path.join(__dirname, "..", "datasetModels/logs_references.json");
-            let reference = null;
-            try {
-                reference = dataUtils.findInElement(fileReference, "references", fileName);
-                decryptionKey = reference.token;
-            } catch (err) {
-                console.warn('[Telegram] Reference file not found, using generated key:', err.message);
+            // Carica references criptate
+            const logsData = loadLogsReferences();
+            const reference = (logsData.references || []).find(r => r.name === fileName);
+            
+            if (!reference) {
+                bot.sendMessage(chatId, `❌ Riferimento non trovato per: ${fileName}`);
+                return;
             }
+
+            const decryptionKey = reference.token;
 
             bot.sendDocument(chatId, filePath, {
                 caption:
@@ -577,33 +599,24 @@ bot.on('callback_query', (query) => {
                 parse_mode: 'Markdown'
             }).then((sentMessage) => {
 
-                bot.editMessageText(`*Hai ancora 10 secondi*`,{
-                        chat_id: chatId,
-                        message_id: query.message.message_id,
-                        parse_mode: 'Markdown',
-                    }).catch(() => {});
+                bot.editMessageText(`*Hai ancora 10 secondi*`, {
+                    chat_id: chatId,
+                    message_id: query.message.message_id,
+                    parse_mode: 'Markdown',
+                }).catch(() => {});
 
-//Rimuovi la reference dal file per cambiare chiave di criptazione
-                // Decripta con la chiave fornita; se fallisce, notifica e non ricripta
-                let decryptedCsv = null;
-                try {
-                    decryptedCsv = decryptLog(filePath, decryptionKey);
-                } catch (e) {
-                    console.error('[Telegram] decryptLog exception:', e);
-                }
-
-                if (!decryptedCsv) {
-                    bot.sendMessage(chatId, '❌ Chiave non valida o file corrotto: impossibile decriptare.');
-                } else {
-                    // Ricripta con nuova chiave solo se la decrittazione ha successo
+                // Decripta → Genera nuova chiave → Ricripta → Aggiorna reference
+                const decryptedContent = decryptLog(filePath, decryptionKey);
+                
+                if (decryptedContent) {
                     const newKey = generateToken();
-                    const reEncrypted = encryptLog(filePath, newKey);
-                    if (!reEncrypted) {
-                        bot.sendMessage(chatId, '⚠️ Impossibile ricriptare con nuova chiave. Il file rimane invariato.');
-                    } else {
-                        dataUtils.updateInElement(fileReference, "references", fileName,
-                            { name: fileName, token: newKey }
-                        );
+                    if (encryptLog(filePath, newKey)) {
+                        // Aggiorna reference con nuova chiave
+                        const idx = logsData.references.findIndex(r => r.name === fileName);
+                        if (idx !== -1) {
+                            logsData.references[idx].token = newKey;
+                            saveLogsReferences(logsData);
+                        }
                     }
                 }
                 
@@ -612,9 +625,6 @@ bot.on('callback_query', (query) => {
                     query.message.message_id,
                     10,
                     (chatID, messageID, opts) => {
-
-
-                        
                         bot.deleteMessage(chatID, sentMessage.message_id).catch(() => {});
                         
                         bot.editMessageText(
@@ -636,12 +646,12 @@ bot.on('callback_query', (query) => {
 
             }).catch(err => {
                 console.error('[Telegram] Error sending document:', err);
-                bot.sendMessage(chatId, `Errore durante l'invio: ${err.message}`);
+                bot.sendMessage(chatId, `❌ Errore durante l'invio: ${err.message}`);
             });
 
         } catch (error) {
             console.error('[Telegram] Error in download handler:', error);
-            bot.sendMessage(chatId, `Errore: ${error.message}`);
+            bot.sendMessage(chatId, `❌ Errore: ${error.message}`);
         }
         return;
     }
@@ -649,36 +659,35 @@ bot.on('callback_query', (query) => {
     // Gestione cambio pagina
     if (data.startsWith('page_')) {
         const pageNum = parseInt(data.split('_')[1], 10);
-
         if (isNaN(pageNum)) return;
 
         const logDirectory = path.join(__dirname, "..", "datasetModels/saved_datas");
 
         try {
+            // Usa la stessa logica di fetchFiles per consistenza
+            const logsData = loadLogsReferences();
+            const registeredFiles = new Set((logsData.references || []).map(r => r.name));
+            
             const items = fs.readdirSync(logDirectory);
             const files = items.filter(item => {
                 const fullPath = path.join(logDirectory, item);
-                return fs.statSync(fullPath).isFile();
+                return fs.statSync(fullPath).isFile() && registeredFiles.has(item);
             });
 
             const totalPages = Math.ceil(files.length / filesPerPage);
-            let safePage = Math.max(0, Math.min(pageNum, totalPages - 1));
+            const safePage = Math.max(0, Math.min(pageNum, totalPages - 1));
 
-            if (pageNum < 0 || pageNum >= totalPages) {
-                bot.answerCallbackQuery(query.id, { text: 'Pagine terminate' });
-            } else {
-                bot.answerCallbackQuery(query.id, { text: `📄 Pagina ${safePage + 1}/${totalPages}` });
-            }
+            bot.answerCallbackQuery(query.id, { 
+                text: pageNum >= totalPages ? 'Pagine terminate' : `📄 Pagina ${safePage + 1}/${totalPages}` 
+            });
 
-            bot.deleteMessage(chatId, query.message.message_id).catch(() => { });
+            bot.deleteMessage(chatId, query.message.message_id).catch(() => {});
             fetchFiles(chatId, safePage);
 
         } catch (error) {
             console.error('[Telegram] Errore cambio pagina:', error);
             bot.answerCallbackQuery(query.id, { text: 'Errore lettura file' });
-            bot.sendMessage(chatId, `Errore: Impossibile caricare i file: ${error.message}`);
         }
-
         return;
     }
 
@@ -784,15 +793,10 @@ bot.on('callback_query', (query) => {
 
 function isAuthenticated(chatID) {
     const users = loadUsers();
-    const user = users.find(u => u.chatID === chatID && u.hasLogged);
-    if (!user) {
-        return false
-    }
-
-    return true;
+    return users.some(u => u.chatID === chatID && u.hasLogged);
 }
 
-const keyExprirationTimers = new Map(); // Mappa per tracciare i timer di scadenza dei token
+// ==================== TIMER SCADENZA TOKEN ====================
 
 function startTokenExpirationTimer(chatID, messageID, seconds, onComplete, options = {}) {
     if (keyExprirationTimers.has(chatID)) {
@@ -804,18 +808,11 @@ function startTokenExpirationTimer(chatID, messageID, seconds, onComplete, optio
         remainingSeconds--;
 
         if (remainingSeconds > 0) {
-
-            const text = `*Hai ancora ${remainingSeconds} secondi*`
-
-            bot.editMessageText(text, {
+            bot.editMessageText(`*Hai ancora ${remainingSeconds} secondi*`, {
                 chat_id: chatID,
                 message_id: messageID,
                 parse_mode: 'Markdown'
-            }).catch(err => {
-                if (err.response?.body?.error_code !== 400) {
-                    console.error('[Telegram] Errore update countdown:', err.message);
-                }
-            });
+            }).catch(() => {});
         } else {
             clearInterval(timer);
             keyExprirationTimers.delete(chatID);

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEB - Decryption Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 .icon {
+            font-size: 1.5rem;
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed rgba(0, 212, 255, 0.4);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.15);
+            transform: scale(1.01);
+        }
+
+        .drop-zone .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .drop-zone p {
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone .hint {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* File Input Hidden */
+        #fileInput {
+            display: none;
+        }
+
+        /* Key Input */
+        .key-section {
+            margin-top: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .input-group input::placeholder {
+            color: #666;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        /* File Info */
+        .file-info {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        .file-info.visible {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .file-info .file-name {
+            font-weight: 600;
+            color: #00d4ff;
+            word-break: break-all;
+        }
+
+        .file-info .file-size {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* Status Messages */
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .status.visible {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.15);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+        }
+
+        .status.error {
+            background: rgba(255, 68, 68, 0.15);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+        }
+
+        .status.info {
+            background: rgba(0, 212, 255, 0.15);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+        }
+
+        /* Preview Section */
+        .preview-section {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .preview-section.visible {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .preview-content {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .preview-content::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .preview-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .preview-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.4);
+            border-radius: 4px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Algorithm Info */
+        .algo-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            font-size: 0.9rem;
+        }
+
+        .algo-info code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ffc107;
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .input-group input {
+                width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Toggle visibility button */
+        .toggle-visibility {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-visibility:hover {
+            color: #00d4ff;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 MEB Decryption Tool</h1>
+            <p>Decripta i file CSV criptati con AES-256-GCM</p>
+        </header>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <h2><span class="icon">📁</span> Importa File Criptato</h2>
+            
+            <div class="drop-zone" id="dropZone">
+                <span class="icon">⬆️</span>
+                <p>Trascina qui il file criptato o clicca per selezionarlo</p>
+                <span class="hint">Formati supportati: .csv (criptati)</span>
+            </div>
+            <input type="file" id="fileInput" accept=".csv,.bin,.enc">
+
+            <div class="file-info" id="fileInfo">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+        </div>
+
+        <!-- Key Section -->
+        <div class="card">
+            <h2><span class="icon">🔑</span> Chiave di Decriptazione</h2>
+            
+            <div class="key-section">
+                <div class="input-group">
+                    <input type="password" id="decryptKey" placeholder="Inserisci la chiave di decriptazione (token)">
+                    <button class="toggle-visibility" id="toggleKey" title="Mostra/Nascondi chiave">👁️</button>
+                </div>
+            </div>
+
+            <div class="algo-info">
+                <strong>ℹ️ Formato chiave supportato:</strong><br>
+                • Token esadecimale (48 caratteri): <code>217af80a15d54289...</code><br>
+                • Qualsiasi stringa (verrà hashata con SHA-256)<br>
+                • Algoritmo: <code>AES-256-GCM</code> con IV (12 byte) + Auth Tag (16 byte)
+            </div>
+        </div>
+
+        <!-- Decrypt Button -->
+        <div class="card">
+            <button class="btn btn-primary" id="decryptBtn" disabled>
+                <span id="decryptBtnText">🔓 Decripta File</span>
+            </button>
+
+            <div class="status" id="status"></div>
+
+            <!-- Preview Section -->
+            <div class="preview-section" id="previewSection">
+                <div class="preview-header">
+                    <h3>📄 Anteprima Contenuto</h3>
+                    <span id="previewLines"></span>
+                </div>
+                <div class="preview-content" id="previewContent"></div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-success" id="downloadBtn">
+                        ⬇️ Scarica File Decriptato
+                    </button>
+                    <button class="btn btn-secondary" id="copyBtn">
+                        📋 Copia negli Appunti
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn">
+                        🔄 Nuovo File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CRYPTO FUNCTIONS (Same as crypt.js) ====================
+        
+        /**
+         * Normalizza qualsiasi chiave a 32 byte per AES-256
+         * Replica la logica di normalizeKey() in crypt.js
+         */
+        async function normalizeKey(customKey) {
+            if (!customKey) {
+                throw new Error("Chiave non fornita");
+            }
+
+            // Se è hex di 64 caratteri, converti direttamente
+            if (/^[0-9a-fA-F]{64}$/.test(customKey)) {
+                return hexToArrayBuffer(customKey);
+            }
+
+            // Se è hex di 48 caratteri (token standard), hash con SHA-256
+            // Altrimenti hash SHA-256 per ottenere 32 byte
+            const encoder = new TextEncoder();
+            const data = encoder.encode(customKey);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return hashBuffer;
+        }
+
+        /**
+         * Converte stringa hex in ArrayBuffer
+         */
+        function hexToArrayBuffer(hex) {
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return bytes.buffer;
+        }
+
+        /**
+         * Decripta dati con AES-256-GCM
+         * Struttura file: [IV(12 byte) + TAG(16 byte) + CIPHERTEXT]
+         */
+        async function decryptAES256GCM(encryptedBuffer, keyBuffer) {
+            const encryptedArray = new Uint8Array(encryptedBuffer);
+            
+            if (encryptedArray.length < 28) {
+                throw new Error("File troppo corto o corrotto");
+            }
+
+            // Estrai IV (primi 12 byte)
+            const iv = encryptedArray.slice(0, 12);
+            
+            // Estrai Auth Tag (byte 12-28)
+            const tag = encryptedArray.slice(12, 28);
+            
+            // Estrai ciphertext (resto del file)
+            const ciphertext = encryptedArray.slice(28);
+            
+            // In WebCrypto, il tag è concatenato al ciphertext per la decrittazione
+            const ciphertextWithTag = new Uint8Array(ciphertext.length + tag.length);
+            ciphertextWithTag.set(ciphertext);
+            ciphertextWithTag.set(tag, ciphertext.length);
+
+            // Importa la chiave
+            const cryptoKey = await crypto.subtle.importKey(
+                'raw',
+                keyBuffer,
+                { name: 'AES-GCM' },
+                false,
+                ['decrypt']
+            );
+
+            // Decripta
+            const decryptedBuffer = await crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv,
+                    tagLength: 128 // 16 byte = 128 bit
+                },
+                cryptoKey,
+                ciphertextWithTag
+            );
+
+            return decryptedBuffer;
+        }
+
+        /**
+         * Controlla se il file è già in chiaro (CSV/testo)
+         */
+        function isPlainText(buffer) {
+            const arr = new Uint8Array(buffer);
+            if (arr.length < 10) return false;
+
+            // soglia: se più del 10% dei byte nei primi 256 sono non stampabili, consideriamo binario
+            const maxCheck = Math.min(256, arr.length);
+            let nonPrintable = 0;
+
+            for (let i = 0; i < maxCheck; i++) {
+                const b = arr[i];
+
+                // caratteri ammessi: tab (9), newline (10), carriage return (13),
+                // spazio (32) fino a ~ carattere 126 (tilde)
+                const isAllowedWhitespace = b === 9 || b === 10 || b === 13;
+                const isPrintable = b >= 32 && b <= 126;
+
+                if (!(isAllowedWhitespace || isPrintable)) {
+                    nonPrintable++;
+                }
+            }
+
+            const ratio = nonPrintable / maxCheck;
+            return ratio < 0.1; // se meno del 10% sono strani, lo consideriamo testo
+        }
+
+        // ==================== DOM ELEMENTS ====================
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const decryptKey = document.getElementById('decryptKey');
+        const toggleKey = document.getElementById('toggleKey');
+        const decryptBtn = document.getElementById('decryptBtn');
+        const decryptBtnText = document.getElementById('decryptBtnText');
+        const status = document.getElementById('status');
+        const previewSection = document.getElementById('previewSection');
+        const previewContent = document.getElementById('previewContent');
+        const previewLines = document.getElementById('previewLines');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // ==================== STATE ====================
+        let selectedFile = null;
+        let decryptedContent = null;
+
+        // ==================== EVENT LISTENERS ====================
+
+        // Drop zone click
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Toggle key visibility
+        toggleKey.addEventListener('click', () => {
+            const type = decryptKey.type === 'password' ? 'text' : 'password';
+            decryptKey.type = type;
+            toggleKey.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        // Key input
+        decryptKey.addEventListener('input', updateDecryptButton);
+
+        // Decrypt button
+        decryptBtn.addEventListener('click', decryptFile);
+
+        // Download button
+        downloadBtn.addEventListener('click', downloadDecrypted);
+
+        // Copy button
+        copyBtn.addEventListener('click', copyToClipboard);
+
+        // Reset button
+        resetBtn.addEventListener('click', resetAll);
+
+        // ==================== FUNCTIONS ====================
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileName.textContent = `📄 ${file.name}`;
+            fileSize.textContent = `Dimensione: ${formatSize(file.size)}`;
+            fileInfo.classList.add('visible');
+            updateDecryptButton();
+            hideStatus();
+            previewSection.classList.remove('visible');
+            decryptedContent = null;
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function updateDecryptButton() {
+            decryptBtn.disabled = !(selectedFile && decryptKey.value.trim());
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status visible ${type}`;
+        }
+
+        function hideStatus() {
+            status.classList.remove('visible');
+        }
+
+        async function decryptFile() {
+            if (!selectedFile || !decryptKey.value.trim()) return;
+
+            // Show loading
+            decryptBtnText.innerHTML = '<span class="spinner"></span> Decrittazione...';
+            decryptBtn.disabled = true;
+
+            try {
+                // Read file
+                const fileBuffer = await selectedFile.arrayBuffer();
+
+                // Check if already plain text
+                if (isPlainText(fileBuffer)) {
+                    decryptedContent = new TextDecoder().decode(fileBuffer);
+                    showStatus('⚠️ Il file è già in chiaro (non criptato)', 'info');
+                } else {
+                    // Normalize key
+                    const keyBuffer = await normalizeKey(decryptKey.value.trim());
+
+                    // Decrypt
+                    const decryptedBuffer = await decryptAES256GCM(fileBuffer, keyBuffer);
+                    decryptedContent = new TextDecoder().decode(decryptedBuffer);
+                    
+                    showStatus('✅ File decriptato con successo!', 'success');
+                }
+
+                // Show preview
+                showPreview(decryptedContent);
+
+            } catch (error) {
+                console.error('Decryption error:', error);
+                
+                let errorMsg = '❌ Errore nella decrittazione: ';
+                if (error.message.includes('tag') || error.message.includes('decrypt')) {
+                    errorMsg += 'Chiave non valida o file corrotto';
+                } else {
+                    errorMsg += error.message;
+                }
+                
+                showStatus(errorMsg, 'error');
+                previewSection.classList.remove('visible');
+            } finally {
+                decryptBtnText.innerHTML = '🔓 Decripta File';
+                updateDecryptButton();
+            }
+        }
+
+        function showPreview(content) {
+            const lines = content.split('\n');
+            const previewText = lines.slice(0, 50).join('\n');
+            
+            previewContent.textContent = previewText;
+            previewLines.textContent = `${lines.length} righe totali`;
+            
+            if (lines.length > 50) {
+                previewContent.textContent += '\n\n... [Anteprima troncata a 50 righe] ...';
+            }
+            
+            previewSection.classList.add('visible');
+        }
+
+        function downloadDecrypted() {
+            if (!decryptedContent || !selectedFile) return;
+
+            const blob = new Blob([decryptedContent], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = selectedFile.name.replace('.csv', '_decrypted.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('✅ File scaricato!', 'success');
+        }
+
+        async function copyToClipboard() {
+            if (!decryptedContent) return;
+
+            try {
+                await navigator.clipboard.writeText(decryptedContent);
+                showStatus('✅ Contenuto copiato negli appunti!', 'success');
+            } catch (error) {
+                showStatus('❌ Errore nella copia: ' + error.message, 'error');
+            }
+        }
+
+        function resetAll() {
+            selectedFile = null;
+            decryptedContent = null;
+            fileInput.value = '';
+            decryptKey.value = '';
+            fileInfo.classList.remove('visible');
+            previewSection.classList.remove('visible');
+            hideStatus();
+            updateDecryptButton();
+        }
+    </script>
+</body>
+</html>

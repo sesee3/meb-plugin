@@ -20,4 +20,6 @@ node_modules/
 AuthKey_XAS94MP5V8.p8
 
 plugin/datasetModels/saved_datas
-telegram_users.json
+plugin/datasetModels/logs_references.json
+plugin/bot/telegram_users.json
+
