@@ -1,26 +1,23 @@
-# OS cache directories
 .DS_Store
 Thumbs.db
 
-# Environment variables and secrets
 .env
 .env.local
 
-# Editor / IDE
 .vscode/
 .idea/
 *.suo
 *.user
 *.swp
 
-# Test
 run.js
 
-# Misc
+
 .cache/
 node_modules/
 .quodana.yaml
 
 AuthKey_XAS94MP5V8.p8
 
-plugin/datas/
+plugin/datasetModels/saved_datas
+telegram_users.json

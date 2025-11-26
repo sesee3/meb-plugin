@@ -1,6 +1,6 @@
 const fs = require('fs');
 const axios = require('axios');
-const { config } = require("./config.js");
+const { config } = require("../config.js");
 
 async function getForecast(latitude, longitude) {
     const api = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,pressure_msl,rain,precipitation,wind_speed_10m`;

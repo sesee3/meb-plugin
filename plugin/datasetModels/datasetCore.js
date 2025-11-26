@@ -12,10 +12,16 @@ const filePath = path.join(__dirname, 'data.json');
  */
 function datasetInit(headers, streamer) {
     streamer.write(headers.join(',') + '\n');
-    console.log("Dataset inizializzato", headers);
 }
 
-
+/**
+ * 
+ * Aggiunge una riga di dati al dataset.
+ * 
+ * @param {Element} data 
+ * @param {String[]} headers 
+ * @param {WriteStream} streamer 
+ */
 function appendData(data, headers, streamer) {
     const row = headers.map(header => {
         const value = data[header];
@@ -28,6 +34,9 @@ function appendData(data, headers, streamer) {
     }
 
 }
+
+
+
 
 module.exports = {
     datasetInit,

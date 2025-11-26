@@ -1,9 +1,9 @@
 const axios = require('axios');
-const { config } = require("./config.js");
+const { config } = require("../config.js");
 const fs = require("fs");
 const path = require("path");
 
-const { getDate, relativeData } = require("./utils.js");
+const { getDate, relativeData } = require("../tools/utils.js");
 
 // let location = {
 //     latitude: 38.17937,

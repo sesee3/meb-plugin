@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
-const { config } = require("./config.js");
+const { config } = require("../config.js");
 
 var jwtToken = "";
 

@@ -1,7 +1,7 @@
 {
   "name": "meb",
   "version": "1.2.0",
-  "description": "Il Plugin personalizzato realizzato dal MEB per tener traccia del meteo in base alla posizione dell'imbarcazione.",
+  "description": "Il plugin personalizzato realizzato dal MEB per tener traccia dei log della barca, implementare previsioni meteo e molto altro.",
   "main": "plugin/index.cjs",
   "keywords": [
     "signalk-node-server-plugin",
@@ -25,9 +25,11 @@
   "dependencies": {
     "axios": "^1.12.2",
     "dotenv": "^17.2.3",
+    "form-data": "^4.0.5",
     "fs": "0.0.1-security",
     "i": "^0.3.7",
     "jsonwebtoken": "^9.0.2",
+    "node-telegram-bot-api": "^0.66.0",
     "path": "^0.12.7"
   }
 }
