@@ -97,16 +97,10 @@ function generateSecureToken(length = 64) {
  * @param {string|Buffer|null} customKey - Chiave custom (opzionale)
  * @returns {Buffer} Dati criptati [IV(12) + TAG(16) + CIPHERTEXT]
  */
+// DISABILITATO: salviamo in chiaro
 function encrypt(obj, customKey = null) {
-    const key = normalizeKey(customKey);
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    
     const plaintext = Buffer.from(JSON.stringify(obj), 'utf8');
-    const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-    const tag = cipher.getAuthTag();
-
-    return Buffer.concat([iv, tag, encrypted]);
+    return plaintext; // ritorna direttamente il contenuto in chiaro
 }
 
 /**
@@ -115,21 +109,12 @@ function encrypt(obj, customKey = null) {
  * @param {string|Buffer|null} customKey - Chiave custom (opzionale)
  * @returns {object} Oggetto decriptato (array vuoto se fallisce)
  */
+// DISABILITATO: leggiamo direttamente in chiaro
 function decrypt(buffer, customKey = null) {
     try {
-        const key = normalizeKey(customKey);
-
-        if (!buffer || buffer.length < 28) return [];
-
-        const iv = buffer.subarray(0, 12);
-        const tag = buffer.subarray(12, 28);
-        const cipherText = buffer.subarray(28);
-
-        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-        decipher.setAuthTag(tag);
-        
-        const decrypted = Buffer.concat([decipher.update(cipherText), decipher.final()]);
-        return JSON.parse(decrypted.toString('utf8'));
+        if (!buffer) return [];
+        const content = buffer.toString('utf8');
+        return JSON.parse(content);
     } catch (error) {
         console.error('[decrypt] Errore:', error.message);
         return [];
@@ -144,21 +129,10 @@ function decrypt(buffer, customKey = null) {
  * @param {string|Buffer|null} customKey - Chiave custom (qualsiasi lunghezza)
  * @returns {boolean} True se successo
  */
+// DISABILITATO: i file log rimangono sempre in chiaro
 function encryptLog(filePath, customKey = null) {
     try {
-        const key = normalizeKey(customKey);
-        const content = fs.readFileSync(filePath, 'utf-8');
-        
-        const iv = crypto.randomBytes(12);
-        const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-        
-        const encrypted = Buffer.concat([
-            cipher.update(Buffer.from(content, 'utf8')), 
-            cipher.final()
-        ]);
-        const tag = cipher.getAuthTag();
-
-        fs.writeFileSync(filePath, Buffer.concat([iv, tag, encrypted]));
+        // Non fare nulla, lascia il file in chiaro
         return true;
     } catch (error) {
         console.error('[encryptLog] Errore:', error.message);
@@ -172,37 +146,11 @@ function encryptLog(filePath, customKey = null) {
  * @param {string|Buffer|null} customKey - Chiave custom
  * @returns {string|null} Contenuto decriptato o null se errore
  */
+// DISABILITATO: i file sono già in chiaro
 function decryptLog(filePath, customKey = null) {
     try {
-        const buffer = fs.readFileSync(filePath);
-
-        // Rileva se il file è già in chiaro (CSV/testo)
-        if (buffer.length >= 10) {
-            const head = buffer.subarray(0, 64).toString('utf8');
-            if (/[\r\n,;]/.test(head) && /[A-Za-z0-9]/.test(head)) {
-                return buffer.toString('utf8'); // Già in chiaro
-            }
-        }
-
-        if (buffer.length < 28) {
-            throw new Error("File troppo corto o corrotto");
-        }
-
-        const iv = buffer.subarray(0, 12);
-        const tag = buffer.subarray(12, 28);
-        const cipherText = buffer.subarray(28);
-
-        const key = normalizeKey(customKey);
-        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-        decipher.setAuthTag(tag);
-        
-        const decrypted = Buffer.concat([decipher.update(cipherText), decipher.final()]);
-        const content = decrypted.toString('utf8');
-        
-        // Riscrivi il file decriptato sul disco
-        fs.writeFileSync(filePath, content, 'utf8');
-        
-        return content;
+        const content = fs.readFileSync(filePath, 'utf8');
+        return content; // ritorna contenuto in chiaro senza modifiche
     } catch (error) {
         console.error('[decryptLog] Errore:', error.message);
         return null;
@@ -215,29 +163,10 @@ function decryptLog(filePath, customKey = null) {
  * @param {string|Buffer|null} customKey - Chiave custom
  * @returns {string|null} Contenuto decriptato o null se errore
  */
+// DISABILITATO: i file sono già in chiaro
 function decryptLogToMemory(filePath, customKey = null) {
     try {
-        const buffer = fs.readFileSync(filePath);
-
-        // Rileva se il file è già in chiaro
-        if (buffer.length >= 10) {
-            const head = buffer.subarray(0, 64).toString('utf8');
-            if (/[\r\n,;]/.test(head) && /[A-Za-z0-9]/.test(head)) {
-                return buffer.toString('utf8');
-            }
-        }
-
-        if (buffer.length < 28) return null;
-
-        const iv = buffer.subarray(0, 12);
-        const tag = buffer.subarray(12, 28);
-        const cipherText = buffer.subarray(28);
-
-        const key = normalizeKey(customKey);
-        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-        decipher.setAuthTag(tag);
-        
-        return Buffer.concat([decipher.update(cipherText), decipher.final()]).toString('utf8');
+        return fs.readFileSync(filePath, 'utf8');
     } catch (error) {
         console.error('[decryptLogToMemory] Errore:', error.message);
         return null;
@@ -258,29 +187,13 @@ function loadSecureFile(filePath, defaultValue = {}) {
         if (!fs.existsSync(filePath)) {
             return defaultValue;
         }
-        const buffer = fs.readFileSync(filePath);
-        
-        // Controlla se è JSON in chiaro (migrazione da vecchio formato)
-        const content = buffer.toString('utf8').trim();
-        if (content.startsWith('{') || content.startsWith('[')) {
-            try {
-                const parsed = JSON.parse(content);
-                console.log(`[loadSecureFile] File ${filePath} in chiaro, verrà criptato al prossimo salvataggio.`);
-                return parsed;
-            } catch {
-                // Non è JSON valido, prova a decriptare
-            }
-        }
-        
-        // Prova a decriptare
-        const decrypted = decrypt(buffer);
-        
-        // Se decrypt restituisce array vuoto ma defaultValue è un oggetto, usa defaultValue
-        if (Array.isArray(decrypted) && decrypted.length === 0 && !Array.isArray(defaultValue)) {
+        const content = fs.readFileSync(filePath, 'utf8').trim();
+        try {
+            return JSON.parse(content);
+        } catch (e) {
+            console.error(`[loadSecureFile] JSON non valido in ${filePath}:`, e.message);
             return defaultValue;
         }
-        
-        return decrypted;
     } catch (error) {
         console.error(`[loadSecureFile] Errore caricamento ${filePath}:`, error.message);
         return defaultValue;
@@ -295,8 +208,8 @@ function loadSecureFile(filePath, defaultValue = {}) {
  */
 function saveSecureFile(filePath, data) {
     try {
-        const buffer = encrypt(data);
-        fs.writeFileSync(filePath, buffer);
+        const content = JSON.stringify(data, null, 2);
+        fs.writeFileSync(filePath, content, 'utf8');
         return true;
     } catch (error) {
         console.error(`[saveSecureFile] Errore salvataggio ${filePath}:`, error.message);

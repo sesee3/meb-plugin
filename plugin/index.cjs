@@ -14,9 +14,9 @@ const path = require("path");
 const {publish} = require("./tools/publisher.js");
 
 const CONFIG = Object.freeze({
-    log_interval: 2000,
+    log_interval: 2000, //Frequenza di aggiornamento  
     number_value_fallback: 999999999999,
-    value_fallback: "no_value"
+    value_fallback: "Funzionalità da Sviluppare"
 });
 
 const CSV_HEADERS = Object.freeze([
@@ -221,7 +221,7 @@ function stopRecording() {
             saveSecureFile(logsReferencesFile, logsData);
 
             // Cripta il file log con la stessa chiave
-            encryptLog(logFilePath, state.currentLogKey);
+            // encryptLog(logFilePath, state.currentLogKey);
             
             console.log(`[stopRecording] Log ${state.currentLogFile} criptato e salvato.`);
         }

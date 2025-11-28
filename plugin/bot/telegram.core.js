@@ -29,6 +29,7 @@ const filesPerPage = 8;
 let app = null;
 
 const livePositionIntervals = new Map();
+const liveParamIntervals = new Map();
 const userCommands = new Map();
 const keyExprirationTimers = new Map();
 
@@ -247,11 +248,11 @@ bot.onText(/\/start/, (msg) => {
                     { text: "Parametri di Bordo" },
                 ],
                 [
-                    { text: "Logs" },
-                ],
-                [
-                    { text: "Impostazioni" },
+                    { text: "File di Log" },
                 ]
+                // [
+                //     { text: "Impostazioni" },
+                // ]
             ],
             resize_keyboard: true,
             one_time_keyboard: false
@@ -301,7 +302,7 @@ bot.onText(/Parametri di Bordo/, (msg) => {
                 { text: " ⛅️ Previsioni Meteo", callback_data: "get_forecasts" }
             ],
             [
-                { text: "📍 Posizione", callback_data: "get_position" }
+                { text: "📍 Posizione & Velocità", callback_data: "get_position" }
             ],
             [
                 { text: "🌬️ Vento", callback_data: "get_wind" }
@@ -347,6 +348,7 @@ bot.onText(/\/login\s+(.+)/, (msg, match) => {
         }
 
         bot.sendMessage(chatID, "Login effettuato.");
+        bot.setMyCommands([]);
     } catch (error) {
         console.log(error);
         bot.sendMessage(chatID, `Errore durante il login: ${error}`);
@@ -563,6 +565,97 @@ let parametersMenu = {
     ]
 }
 
+const parametersSelectionMenu = {
+    inline_keyboard: [
+        [ { text: " ⛅️ Previsioni Meteo", callback_data: "get_forecasts" } ],
+        [ { text: "📍 Posizione & Velocità", callback_data: "get_position" } ],
+        [ { text: "🌬️ Vento", callback_data: "get_wind" } ],
+        [ { text: "🌊 Onde", callback_data: "get_waves" } ],
+        [ { text: "🔋 Batterie", callback_data: "get_batteries" } ]
+    ]
+};
+
+function getSK(path) {
+    if (!app) return null;
+    const v = app.getSelfPath(path);
+    return v && v.value !== undefined && v.value !== null ? v.value : null;
+}
+
+function renderPositionText() {
+    const position = getCurrentPosition();
+    const speed = getSK('navigation.speedOverGround');
+    if (!position) {
+        return "📍 *Posizione*: dati non disponibili";
+    }
+    return `📍 *Posizione*:\nLatitudine: ${position.latitude}\nLongitudine: ${position.longitude}\nVelocità: ${speed ?? 'n/d'} km/h\n`;
+}
+
+function renderWindText() {
+    const speed = getSK('meb.appleWindSpeed');
+    const direction = getSK('meb.appleWindDirection');
+    return `🌬️ *Vento*:\nVelocità: ${speed ?? 'n/d'} km/h\nDirezione: ${`${direction}°` ?? 'Funzionalità a Pagamento'}`;
+}
+
+function renderWavesText() {
+    const height = getSK('meb.waves.height');
+    const period = getSK('meb.waves.period');
+    const direction = getSK('meb.waves.direction');
+    return `🌊 *Onde*:\nAltezza: ${height ?? 'Funzionalità a Pagamento'}m\nPeriodo: ${`${period}s` ?? 'Funzionalità a Pagamento'}\nDirezione: ${`${direction}°` ?? 'Funzionalità a Pagamento'}`;
+}
+
+function renderForecastsText() {
+    const temperautre = getSK('meb.temperature');
+    return `⛅️ *Previsioni Meteo*:\nTemperatura: ${temperautre ?? 'n/d'} °C`;
+}
+
+function renderBatteriesText() {
+    const batteriaTrazione_voltage = getSK('electrical.batteries.0.voltage');
+    const batteriaTrazione_current = getSK('electrical.batteries.0.current');
+    const batteriaTrazione_stateOfCharge = getSK('electrical.batteries.0.capacity.stateOfCharge');
+    const batteriaTrazione_temperature = getSK('electrical.batteries.0.temperature');
+    const batteriaServizio_voltage = getSK('electrical.batteries.1.voltage');
+    const batteriaServizio_current = getSK('electrical.batteries.1.current');
+    const batteriaServizio_stateOfCharge = getSK('electrical.batteries.1.capacity.stateOfCharge');
+    const batteriaServizio_temperature = getSK('electrical.batteries.1.temperature');
+
+    return (
+        `🔋 *Batterie*:\n` +
+        `Tensione: ${batteriaTrazione_voltage ?? 'n/d'} V\n` +
+        `Corrente: ${batteriaTrazione_current ?? 'n/d'} A\n` +
+        `SOC: ${batteriaTrazione_stateOfCharge ?? 'n/d'}%\n` +
+        `Temperatura: ${batteriaTrazione_temperature ?? 'n/d'} °C\n\n` +
+        `Tensione Servizio: ${batteriaServizio_voltage ?? 'n/d'} V\n` +
+        `Corrente Servizio: ${batteriaServizio_current ?? 'n/d'} A\n` +
+        `SOC Servizio: ${batteriaServizio_stateOfCharge ?? 'n/d'}%\n` +
+        `Temperatura Servizio: ${batteriaServizio_temperature ?? 'n/d'} °C`
+    );
+}
+
+function startLiveParam(chatId, messageId, renderFn) {
+    stopLiveParam(chatId);
+    const update = () => {
+        const text = renderFn();
+        bot.editMessageText(text, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'Markdown',
+            reply_markup: parametersMenu
+        }).catch(() => {});
+    };
+    update();
+    const timer = setInterval(update, 3000);
+    liveParamIntervals.set(chatId, timer);
+}
+
+function stopLiveParam(chatId) {
+    if (liveParamIntervals.has(chatId)) {
+        clearInterval(liveParamIntervals.get(chatId));
+        liveParamIntervals.delete(chatId);
+        return true;
+    }
+    return false;
+}
+
 bot.on('callback_query', (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
@@ -594,8 +687,8 @@ bot.on('callback_query', (query) => {
 
             bot.sendDocument(chatId, filePath, {
                 caption:
-                    `📄 \`${fileName}\`\n` +
-                    `🔑 *Chiave: \`${decryptionKey}\`*\n`,
+                    `📄 \`${fileName}\`\n` ,
+                    // `🔑 *Chiave: \`${decryptionKey}\`*\n`,,
                 parse_mode: 'Markdown'
             }).then((sentMessage) => {
 
@@ -629,7 +722,8 @@ bot.on('callback_query', (query) => {
                         
                         bot.editMessageText(
                             `🚫 Tempo scaduto\n\n` +
-                            `Il file \`${opts.fileName}\` e la chiave sono stati rimossi.`,
+                            // `Il file \`${opts.fileName}\` e la chiave sono stati rimossi.`,
+                            `Il file \`${opts.fileName}\` è stato rimosso.`,
                             {
                                 chat_id: chatID,
                                 message_id: messageID,
@@ -719,8 +813,9 @@ bot.on('callback_query', (query) => {
 
             bot.editMessageText(
                 `Scarica \`${fileName}\`\n\n` +
-                `⚠️ Se confermi, avrai *10 secondi* per scaricare il file e salvare la chiave \n` +
-                `⏱️ Non potrai più richiedere il file per 24 ore.`, {
+                // `⚠️ Se confermi, avrai *10 secondi* per scaricare il file e salvare la chiave \n` +
+                // `⏱️ Non potrai più richiedere il file per 24 ore.`, {
+                `⚠️ Se confermi, avrai *10 secondi* per scaricare il file.\n`, {
                 chat_id: chatId,
                 message_id: query.message.message_id,
                 parse_mode: 'Markdown',
@@ -755,18 +850,24 @@ bot.on('callback_query', (query) => {
             });
             break;
 
+            case 'get_forecasts':
+                startLiveParam(chatId, query.message.message_id, renderForecastsText);
+                break;
+
         case 'get_position':
-            const position = getCurrentPosition();
+            startLiveParam(chatId, query.message.message_id, renderPositionText);
+            break;
 
+        case 'get_wind':
+            startLiveParam(chatId, query.message.message_id, renderWindText);
+            break;
 
+        case 'get_waves':
+            startLiveParam(chatId, query.message.message_id, renderWavesText);
+            break;
 
-            bot.editMessageText(`📍 *Posizione *:\nLatitudine: ${position.latitude}\nLongitudine: ${position.longitude}`, {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'Markdown',
-                reply_markup: parametersMenu
-            });
-            // bot.pinChatMessage(chatId, query.message.message_id);
+        case 'get_batteries':
+            startLiveParam(chatId, query.message.message_id, renderBatteriesText);
             break;
 
         case 'dismiss':
@@ -777,12 +878,14 @@ bot.on('callback_query', (query) => {
             break;
 
         case 'dismiss_and_unsubscribe':
-            // bot.unpinChatMessage(chatId, {
-            //     message_id: query.message.message_id
-            // });
             stopTokenExpirationTimer(chatId);
+            stopLiveParam(chatId);
             bot.deleteMessage(chatId, query.message.message_id).catch(() => {});
             bot.deleteMessage(chatId, query.message.message_id - 1).catch(() => {});
+            bot.sendMessage(chatId, "Seleziona un parametro da visualizzare:", {
+                parse_mode: 'Markdown',
+                reply_markup: parametersSelectionMenu
+            }).catch(() => {});
             break;
 
         default:
