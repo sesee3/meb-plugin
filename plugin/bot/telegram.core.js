@@ -620,16 +620,23 @@ function renderBatteriesText() {
     const batteriaServizio_stateOfCharge = getSK('electrical.batteries.service.stateOfCharge');
     const batteriaServizio_temperature = getSK('electrical.batteries.service.temperature');
 
+    const toCelsius = (k) => {
+        if (k === null || k === undefined) return 'n/d';
+        const n = Number(k);
+        if (Number.isNaN(n)) return 'n/d';
+        return (n - 273.15).toFixed(1);
+    };
+
     return (
         `🔋 *Batterie*:\n` +
         `Tensione: ${batteriaTrazione_voltage ?? 'n/d'} V\n` +
         `Corrente: ${batteriaTrazione_current ?? 'n/d'} A\n` +
         `SOC: ${batteriaTrazione_stateOfCharge ?? 'n/d'}%\n` +
-        `Temperatura: ${batteriaTrazione_temperature ?? 'n/d'} °C\n\n` +
+        `Temperatura: ${toCelsius(batteriaTrazione_temperature)} °C\n\n` +
         `Tensione Servizio: ${batteriaServizio_voltage ?? 'n/d'} V\n` +
         `Corrente Servizio: ${batteriaServizio_current ?? 'n/d'} A\n` +
         `SOC Servizio: ${batteriaServizio_stateOfCharge ?? 'n/d'}%\n` +
-        `Temperatura Servizio: ${batteriaServizio_temperature ?? 'n/d'} °C`
+        `Temperatura Servizio: ${toCelsius(batteriaServizio_temperature)} °C`
     );
 }
 
