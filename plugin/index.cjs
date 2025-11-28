@@ -336,7 +336,10 @@ module.exports = function (app) {
 const weatherKitInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
 const stormGlassInterval = 3600; // 1 ora in secondi
 
-let location = null;
+let location = {
+    latitude: app.getSelfPath('navigation.position.latitude')?.value,
+    longitude: app.getSelfPath('navigation.position.longitude')?.value,
+};
 
 const updateWeatherKit = async () => {
     if (!location || !location.latitude || !location.longitude) {

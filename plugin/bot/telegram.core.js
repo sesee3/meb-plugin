@@ -248,7 +248,7 @@ bot.onText(/\/start/, (msg) => {
                     { text: "Parametri di Bordo" },
                 ],
                 [
-                    { text: "Logs" },
+                    { text: "File di Logs" },
                 ]
                 // [
                 //     { text: "Impostazioni" },
@@ -287,7 +287,7 @@ bot.onText(/\/start/, (msg) => {
     }
 });
 
-bot.onText(/Logs/, (msg) => {
+bot.onText(/File di Logs/, (msg) => {
     const chatId = msg.chat.id;
     fetchFiles(chatId, 0);
 });
@@ -609,14 +609,16 @@ function renderForecastsText() {
 }
 
 function renderBatteriesText() {
-    const batteriaTrazione_voltage = getSK('electrical.batteries.0.voltage');
-    const batteriaTrazione_current = getSK('electrical.batteries.0.current');
-    const batteriaTrazione_stateOfCharge = getSK('electrical.batteries.0.capacity.stateOfCharge');
-    const batteriaTrazione_temperature = getSK('electrical.batteries.0.temperature');
-    const batteriaServizio_voltage = getSK('electrical.batteries.1.voltage');
-    const batteriaServizio_current = getSK('electrical.batteries.1.current');
-    const batteriaServizio_stateOfCharge = getSK('electrical.batteries.1.capacity.stateOfCharge');
-    const batteriaServizio_temperature = getSK('electrical.batteries.1.temperature');
+
+    const batteriaTrazione_voltage = getSK('electrical.batteries.traction.Voltage');
+    const batteriaTrazione_current = getSK('electrical.batteries.traction.current');
+    const batteriaTrazione_stateOfCharge = getSK('electrical.batteries.traction.stateOfCharge');
+    const batteriaTrazione_temperature = getSK('electrical.batteries.traction.temperature');
+    const batteriaTrazione_power =  getSK('electrical.batteries.traction.power');
+    const batteriaServizio_voltage = getSK('electrical.batteries.service.Voltage');
+    const batteriaServizio_current = getSK('electrical.batteries.service.current');
+    const batteriaServizio_stateOfCharge = getSK('electrical.batteries.service.stateOfCharge');
+    const batteriaServizio_temperature = getSK('electrical.batteries.service.temperature');
 
     return (
         `🔋 *Batterie*:\n` +
