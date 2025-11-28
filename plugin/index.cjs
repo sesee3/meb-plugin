@@ -139,14 +139,15 @@ const collectSensorData = (settings = {}) => {
         headingTrue: getSKValue("navigation.headingTrue"),
         latitude: settings.latitude ?? CONFIG.number_value_fallback,
         longitude: settings.longitude ?? CONFIG.number_value_fallback,
-        '1Voltage': getSKValue("electrical.batteries.1.voltage"),
-        '1Current': getSKValue("electrical.batteries.1.current"),
-        '1StateOfCharge': getSKValue("electrical.batteries.1.capacity.stateOfCharge"),
-        '1Temperature': getSKValue("electrical.batteries.1.temperature"),
-        '0Voltage': getSKValue("electrical.batteries.0.voltage"),
-        '0Current': getSKValue("electrical.batteries.0.current"),
-        '0CellsStateOfCharge': getSKValue("electrical.batteries.0.capacity.stateOfCharge"),
-        '0AverageCellTemperature': getSKValue("electrical.batteries.0.temperature"),
+        '1Voltage': getSKValue("electrical.batteries.service.Voltage"),
+        '1Current': getSKValue("electrical.batteries.service.current"),
+        '1StateOfCharge': getSKValue("electrical.batteries.service.stateOfCharge"),
+        '1Temperature': getSKValue("electrical.batteries.service.temperature"),
+        '0Voltage': getSKValue("electrical.batteries.traction.Voltage"),
+        '0Current': getSKValue("electrical.batteries.traction.current"),
+        '0CellsStateOfCharge': getSKValue("electrical.batteries.traction.stateOfCharge"),
+        '0AverageCellTemperature': getSKValue("electrical.batteries.traction.temperature"),
+        '0Power': getSKValue("electrical.batteries.traction.power"),
         propultionShaftSpeed: getSKValue("propulsion.0.revolutions"),
         systemUptime: process.uptime() ?? CONFIG.number_value_fallback
     };
@@ -338,6 +339,12 @@ const stormGlassInterval = 3600; // 1 ora in secondi
 let location = null;
 
 const updateWeatherKit = async () => {
+
+    location = {
+        latitude: getSKValue("navigation.position.latitude"),
+        longitude: getSKValue("navigation.position.longitude"),
+    }
+
     if (!location || !location.latitude || !location.longitude) {
         console.error("Posizione non disponibile per WeatherKit, uso lat/lon dal pannello impostazioni");
         location = {
