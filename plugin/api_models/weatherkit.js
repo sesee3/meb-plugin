@@ -42,33 +42,63 @@ function generateToken() {
 }
 
 async function getForecast(location) {
+    if (!jwtToken) {
+        generateToken();
+    }
 
-        if (!jwtToken) {
-            generateToken();
-        }
-
+    // Richiedi più dataset per aumentare probabilità di dati disponibili
     const dataSets = ["currentWeather"];
-    const url = `https://weatherkit.apple.com/api/v1/weather/${config.language}/${location.latitude}/${location.longitude}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(config.timezone)}`;
+    const url = `https://weatherkit.apple.com/api/v1/weather/${encodeURIComponent(config.language)}/${location.latitude}/${location.longitude}?dataSets=${dataSets.join(",")}&timezone=${encodeURIComponent(config.timezone)}`;
 
     const response = await axios.get(url, {
-        headers: { 
+        headers: {
             Authorization: `Bearer ${jwtToken}`
         },
-        timeout: 15000,
+        timeout: 20000,
         validateStatus: () => true,
     });
 
-    const data = response.data;
-
-    if (!data || !data.currentWeather) {
-        throw new Error("WeatherKit: campo currentWeather mancante nella risposta JSON.");
+    // Gestione errori HTTP
+    if (response.status < 200 || response.status >= 300) {
+        const message = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        throw new Error(`WeatherKit HTTP ${response.status}: ${message}`);
     }
 
+    const data = response.data || {};
+
+    // Prova parsing "currentWeather"
+    let current = data.currentWeather || data?.currentWeather?.data || null;
+    if (Array.isArray(current)) current = current[0] || null;
+
+    // Se manca current, usa il primo elemento di forecastHourly come fallback
+    if (!current && Array.isArray(data.forecastHourly)) {
+        const h0 = data.forecastHourly[0];
+        if (h0) {
+            current = {
+                temperature: h0.temperature,
+                precipitationIntensity: h0.precipitationIntensity,
+                windSpeed: h0.windSpeed,
+                windDirection: h0.windDirection,
+            };
+        }
+    }
+
+    // Se ancora non disponibile, fallback sicuro
+    if (!current) {
+        throw new Error("WeatherKit: currentWeather non disponibile e nessun fallback utile.");
+    }
+
+    // Normalizza campi
+    const temperature = current.temperature ?? null;
+    const rain = current.precipitationIntensity ?? current.precipitation ?? null;
+    const windSpeed = current.windSpeed ?? null;
+    const windDirection = current.windDirection ?? null;
+
     return {
-        temperature: data.currentWeather.temperature,
-        rain: data.currentWeather.precipitationIntensity,
-        windSpeed: data.currentWeather.windSpeed,
-        windDirection: data.currentWeather.windDirection,
+        temperature,
+        rain,
+        windSpeed,
+        windDirection,
     };
 }
 

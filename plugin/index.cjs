@@ -339,12 +339,6 @@ const stormGlassInterval = 3600; // 1 ora in secondi
 let location = null;
 
 const updateWeatherKit = async () => {
-
-    location = {
-        latitude: getSKValue("navigation.position.latitude"),
-        longitude: getSKValue("navigation.position.longitude"),
-    }
-
     if (!location || !location.latitude || !location.longitude) {
         console.error("Posizione non disponibile per WeatherKit, uso lat/lon dal pannello impostazioni");
         location = {

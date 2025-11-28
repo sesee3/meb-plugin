@@ -248,7 +248,7 @@ bot.onText(/\/start/, (msg) => {
                     { text: "Parametri di Bordo" },
                 ],
                 [
-                    { text: "File di Log" },
+                    { text: "Logs" },
                 ]
                 // [
                 //     { text: "Impostazioni" },
