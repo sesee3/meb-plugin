@@ -72,6 +72,30 @@ function extractForecastData(weatherResponse) {
     };
 }
 
+async function getCurrentWaves(location) {
+    try {
+        const api = "https://marine-api.open-meteo.com/v1/marine?latitude=38.21&longitude=15.2&current=wave_height,wave_period,wave_direction,wave_peak_period&forecast_days=1"
+        const response = await axios.get(api, {
+            headers: {
+                Accept: "application/json, text/plain;q=0.9,*/*;q=0.8"
+            },
+            timeout: 10000, // 10 second timeout
+            validateStatus: (status) => status === 200 // Only accept 200 as valid
+        });
+
+        const { data } = response;
+
+        return {
+            waveHeight: data.current.wave_height,
+            wavePeriod: data.current.wave_period,
+            waveDirection: data.current.wave_direction,
+            wavePeakPeriod: data.current.wave_peak_period
+        };
+    } catch (error) {
+        console.error("Errore nella richiesta OpneMeteo per le onde:", error.message);
+    }
+}
+
 // async function buildWith(settings) {
 //     const location = app.getSelfPath("navigation.position");
 //
@@ -97,4 +121,4 @@ function extractForecastData(weatherResponse) {
 //     }
 // }
 
-module.exports = { buildWith };
+module.exports = { getCurrentWaves };

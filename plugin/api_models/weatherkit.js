@@ -38,13 +38,15 @@ function generateToken() {
         header: headers,
     });
 
-    console.log("[WeatherKit] Developer token generato.");
+    console.log(`[WeatherKit] Developer token generato., ${jwtToken}`);
 }
 
 async function getForecast(location) {
     if (!jwtToken) {
         generateToken();
     }
+
+    console.log(`[WeatherKit] Richiesta meteo per lat=${location.latitude}, lon=${location.longitude}`);
 
     // Richiedi più dataset per aumentare probabilità di dati disponibili
     const dataSets = ["currentWeather"];

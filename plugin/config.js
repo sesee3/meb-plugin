@@ -10,7 +10,7 @@ const config = {
     keyId: process.env.WEATHERKIT_KEY_ID,
 
     authPath: process.env.WEATHERKIT_AUTH_FILE,
-    stormglassApiKey: process.env.STORMGLASS_API_KEY,
+    stormglassApiKey: "401043e2-b5b4-11f0-b5c3-0242ac130003-40104464-b5b4-11f0-b5c3-0242ac130003",
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     language: "it",
     timezone: "Europe/Rome",

@@ -10,6 +10,7 @@ const dataUtils = require("./datasetModels/datasetUtils.js");
 const { generateToken, encryptLog, loadSecureFile, saveSecureFile } = require("./tools/crypt.js");
 const fs = require("fs");
 const path = require("path");
+const { getCurrentWaves } = require("./api_models/openmeteo.js");
 
 const {publish} = require("./tools/publisher.js");
 
@@ -42,6 +43,7 @@ const CSV_HEADERS = Object.freeze([
     '0Current',
     '0CellsStateOfCharge',
     '0AverageCellTemperature',
+    '0Power',
     'propultionShaftSpeed',
     'systemUptime'
 ]);
@@ -334,7 +336,8 @@ module.exports = function (app) {
                 // ==================== WEATHER UPDATES ====================
                 // WEATHER
 const weatherKitInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
-const stormGlassInterval = 3600; // 1 ora in secondi
+// const stormGlassInterval = 3600; // 1 ora in secondi
+const updatedWavesInterval = Math.max(10, Number(settings?.updaterInterval ?? 60));
 
 let location = {
     latitude: app.getSelfPath('navigation.position.latitude')?.value,
@@ -345,8 +348,8 @@ const updateWeatherKit = async () => {
     if (!location || !location.latitude || !location.longitude) {
         console.error("Posizione non disponibile per WeatherKit, uso lat/lon dal pannello impostazioni");
         location = {
-            latitude: 38.1137,
-            longitude: 15.3315,
+            latitude: 38.21,
+            longitude: 15.30,
         };
     }
 
@@ -403,13 +406,39 @@ const updateStormGlass = async () => {
     }
 };
 
+const updateWaves = async () => {
+    if (!location || !location.latitude || !location.longitude) {
+        console.error("Posizione non disponibile per OpenMeteo, uso lat/lon dal pannello impostazioni");
+        location = {
+            latitude: Number(settings?.latitude),
+            longitude: Number(settings?.longitude),
+        };
+    }
+
+    try {
+        const waveData = await getCurrentWaves(location);
+
+        if (!waveData) {
+            console.error("⚠️ Dati onde OpenMeteo non validi:", waveData);
+            return;
+        }
+
+        publish(app, { waves: waveData }, settings);
+        console.log("✅ OpenMeteo onde aggiornate con successo");
+    } catch (error) {
+        console.log("Errore in updatwWaves", error)
+    }
+}
+
 // chiamata immediata
 updateWeatherKit();
 updateStormGlass();
+updateWaves();
 
 // timer periodici (ms)
 state.weatherKitTimer = setInterval(updateWeatherKit, weatherKitInterval * 1000);
-state.stormGlassTimer = setInterval(updateStormGlass, stormGlassInterval * 1000);
+state.stormGlassTimer = setInterval(updateWaves, updatedWavesInterval * 10000);
+
 
                 // ==================== MAPPA INTERATTIVA ====================
                 try {

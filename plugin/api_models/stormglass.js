@@ -14,7 +14,7 @@ const { getDate, relativeData } = require("../tools/utils.js");
 //     location = newLoc;
 // }
 
-const apiKey = config.stormglassApiKey;
+const apiKey = "bdf9e770-bbd3-11f0-b4de-0242ac130003-bdf9e82e-bbd3-11f0-b4de-0242ac130003";
 const provider = "sg";
 
 async function getStormGlassWeather(location) {
@@ -24,7 +24,7 @@ async function getStormGlassWeather(location) {
 
     const { data } = await axios.get(url, {
         headers: {
-            Authorization: config.stormglassApiKey,
+            Authorization: apiKey,
         },
         timeout: 15000,
     });

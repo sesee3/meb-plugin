@@ -17,6 +17,12 @@ let bot = null;
 
 if (token) {
     bot = new TelegramBot(token, { polling: true });
+    if (process.__meb_telegram_handlers_installed) {
+        console.warn("[MEB TELEGRAM] Handlers già installati, evito doppia registrazione.");
+    } else {
+        process.__meb_telegram_handlers_installed = true;
+        // QUI dentro sposteremo tutte le bot.onText / bot.on('callback_query') ecc.
+    }
 } else {
     console.warn("[MEB TELEGRAM] TELEGRAM_BOT_TOKEN non impostato: bot disabilitato.");
 }
@@ -249,10 +255,13 @@ bot.onText(/\/start/, (msg) => {
                 ],
                 [
                     { text: "File di Logs" },
+                ],
+                [
+                    { text: "Genera un nuovo log" },
+                ],
+                [
+                    { text: "Stato dei Log" }
                 ]
-                // [
-                //     { text: "Impostazioni" },
-                // ]
             ],
             resize_keyboard: true,
             one_time_keyboard: false
@@ -262,7 +271,9 @@ bot.onText(/\/start/, (msg) => {
             parse_mode: 'Markdown',
             reply_markup: menu
         });
+
         return;
+        
     } else {
 
         bot.sendMessage(chatId, "Benvenuto nel MEB Data Console!\nQuesto bot consente di visualizzare i dati del computer di bordo, ricevere aggiornamenti su parametri a scelta e scaricare i file di log della barca.", {
@@ -285,6 +296,7 @@ bot.onText(/\/start/, (msg) => {
             parse_mode: 'Markdown'
         });
     }
+
 });
 
 bot.onText(/File di Logs/, (msg) => {
@@ -386,7 +398,7 @@ bot.onText(/\/override_login/, (msg) => {
 
 // ==================== LOG FILE COMMANDS ====================
 
-bot.onText(/\/log_status/, (msg) => {
+bot.onText(/Stato dei Log/, (msg) => {
     const chatId = msg.chat.id;
 
     if (!isAuthenticated(chatId)) {
@@ -477,7 +489,7 @@ bot.onText(/\/log_status/, (msg) => {
 //     }
 // });
 
-bot.onText(/\/log_restart/, (msg) => {
+bot.onText(/Genera un nuovo log/, (msg) => {
     const chatId = msg.chat.id;
 
     if (!isAuthenticated(chatId)) {
@@ -597,9 +609,9 @@ function renderWindText() {
 }
 
 function renderWavesText() {
-    const height = getSK('meb.waves.height');
-    const period = getSK('meb.waves.period');
-    const direction = getSK('meb.waves.direction');
+    const height = getSK('meb.waves.waveHeight');
+    const period = getSK('meb.waves.wavePeriod');
+    const direction = getSK('meb.waves.waveDirection');
     return `🌊 *Onde*:\nAltezza: ${height ?? 'Funzionalità a Pagamento'}m\nPeriodo: ${`${period}s` ?? 'Funzionalità a Pagamento'}\nDirezione: ${`${direction}°` ?? 'Funzionalità a Pagamento'}`;
 }
 
@@ -636,6 +648,7 @@ function renderBatteriesText() {
         `Tensione Servizio: ${batteriaServizio_voltage ?? 'n/d'} V\n` +
         `Corrente Servizio: ${batteriaServizio_current ?? 'n/d'} A\n` +
         `SOC Servizio: ${batteriaServizio_stateOfCharge ?? 'n/d'}%\n` +
+        `Potenza Trazione: ${batteriaTrazione_power ?? 'n/d'} W\n` +
         `Temperatura Servizio: ${toCelsius(batteriaServizio_temperature)} °C`
     );
 }
